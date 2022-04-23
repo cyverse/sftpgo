@@ -480,7 +480,7 @@ func loadAdminTemplates(templatesPath string) {
 		"ListFSProviders": func() []sdk.FilesystemProvider {
 			return []sdk.FilesystemProvider{sdk.LocalFilesystemProvider, sdk.CryptedFilesystemProvider,
 				sdk.S3FilesystemProvider, sdk.GCSFilesystemProvider, sdk.AzureBlobFilesystemProvider,
-				sdk.SFTPFilesystemProvider, sdk.HTTPFilesystemProvider,
+				sdk.SFTPFilesystemProvider, sdk.HTTPFilesystemProvider, sdk.IRODSFilesystemProvider,
 			}
 		},
 		"HumanizeBytes": util.ByteCountSI,
@@ -1506,6 +1506,18 @@ func getAzureConfig(r *http.Request) (vfs.AzBlobFsConfig, error) {
 	return config, nil
 }
 
+func getIRODSConfig(r *http.Request) (vfs.IRODSFsConfig, error) {
+	var err error
+	config := vfs.IRODSFsConfig{}
+	config.Endpoint = r.Form.Get("irods_endpoint")
+	config.Username = r.Form.Get("irods_username")
+	config.ProxyUsername = r.Form.Get("irods_proxyusername")
+	config.CollectionPath = r.Form.Get("irods_collection")
+	config.ResourceServer = r.Form.Get("irods_resource")
+	config.Password = getSecretFromFormField(r, "irods_password")
+	return config, err
+}
+
 func getFsConfigFromPostFields(r *http.Request) (vfs.Filesystem, error) {
 	var fs vfs.Filesystem
 	fs.Provider = sdk.GetProviderByName(r.Form.Get("fs_provider"))
@@ -1538,6 +1550,12 @@ func getFsConfigFromPostFields(r *http.Request) (vfs.Filesystem, error) {
 		fs.SFTPConfig = config
 	case sdk.HTTPFilesystemProvider:
 		fs.HTTPConfig = getHTTPFsConfig(r)
+	case sdk.IRODSFilesystemProvider:
+		config, err := getIRODSConfig(r)
+		if err != nil {
+			return fs, err
+		}
+		fs.IRODSConfig = config
 	}
 	return fs, nil
 }
@@ -1638,6 +1656,8 @@ func getFolderFromTemplate(folder vfs.BaseVirtualFolder, name string) vfs.BaseVi
 		folder.FsConfig.SFTPConfig = getSFTPFsFromTemplate(folder.FsConfig.SFTPConfig, replacements)
 	case sdk.HTTPFilesystemProvider:
 		folder.FsConfig.HTTPConfig = getHTTPFsFromTemplate(folder.FsConfig.HTTPConfig, replacements)
+	case sdk.IRODSFilesystemProvider:
+		folder.FsConfig.IRODSConfig = getIRODSFsFromTemplate(folder.FsConfig.IRODSConfig, replacements)
 	}
 
 	return folder
@@ -1693,6 +1713,16 @@ func getHTTPFsFromTemplate(fsConfig vfs.HTTPFsConfig, replacements map[string]st
 	return fsConfig
 }
 
+func getIRODSFsFromTemplate(fsConfig vfs.IRODSFsConfig, replacements map[string]string) vfs.IRODSFsConfig {
+	fsConfig.Username = replacePlaceholders(fsConfig.Username, replacements)
+	if fsConfig.Password != nil && fsConfig.Password.IsPlain() {
+		payload := replacePlaceholders(fsConfig.Password.GetPayload(), replacements)
+		fsConfig.Password = kms.NewPlainSecret(payload)
+	}
+	return fsConfig
+
+}
+
 func getUserFromTemplate(user dataprovider.User, template userTemplateFields) dataprovider.User {
 	user.Username = template.Username
 	user.Password = template.Password
@@ -1729,6 +1759,8 @@ func getUserFromTemplate(user dataprovider.User, template userTemplateFields) da
 		user.FsConfig.SFTPConfig = getSFTPFsFromTemplate(user.FsConfig.SFTPConfig, replacements)
 	case sdk.HTTPFilesystemProvider:
 		user.FsConfig.HTTPConfig = getHTTPFsFromTemplate(user.FsConfig.HTTPConfig, replacements)
+	case sdk.IRODSFilesystemProvider:
+		user.FsConfig.IRODSConfig = getIRODSFsFromTemplate(user.FsConfig.IRODSConfig, replacements)
 	}
 
 	return user
@@ -2822,7 +2854,7 @@ func (s *httpdServer) handleWebUpdateUserPost(w http.ResponseWriter, r *http.Req
 	updateEncryptedSecrets(&updatedUser.FsConfig, user.FsConfig.S3Config.AccessSecret, user.FsConfig.AzBlobConfig.AccountKey,
 		user.FsConfig.AzBlobConfig.SASURL, user.FsConfig.GCSConfig.Credentials, user.FsConfig.CryptConfig.Passphrase,
 		user.FsConfig.SFTPConfig.Password, user.FsConfig.SFTPConfig.PrivateKey, user.FsConfig.SFTPConfig.KeyPassphrase,
-		user.FsConfig.HTTPConfig.Password, user.FsConfig.HTTPConfig.APIKey)
+		user.FsConfig.HTTPConfig.Password, user.FsConfig.HTTPConfig.APIKey, user.FsConfig.IRODSConfig.Password)
 
 	updatedUser = getUserFromTemplate(updatedUser, userTemplateFields{
 		Username:   updatedUser.Username,
@@ -2968,7 +3000,7 @@ func (s *httpdServer) handleWebUpdateFolderPost(w http.ResponseWriter, r *http.R
 	updateEncryptedSecrets(&updatedFolder.FsConfig, folder.FsConfig.S3Config.AccessSecret, folder.FsConfig.AzBlobConfig.AccountKey,
 		folder.FsConfig.AzBlobConfig.SASURL, folder.FsConfig.GCSConfig.Credentials, folder.FsConfig.CryptConfig.Passphrase,
 		folder.FsConfig.SFTPConfig.Password, folder.FsConfig.SFTPConfig.PrivateKey, folder.FsConfig.SFTPConfig.KeyPassphrase,
-		folder.FsConfig.HTTPConfig.Password, folder.FsConfig.HTTPConfig.APIKey)
+		folder.FsConfig.HTTPConfig.Password, folder.FsConfig.HTTPConfig.APIKey, folder.FsConfig.IRODSConfig.Password)
 
 	updatedFolder = getFolderFromTemplate(updatedFolder, updatedFolder.Name)
 
@@ -3134,7 +3166,7 @@ func (s *httpdServer) handleWebUpdateGroupPost(w http.ResponseWriter, r *http.Re
 		group.UserSettings.FsConfig.GCSConfig.Credentials, group.UserSettings.FsConfig.CryptConfig.Passphrase,
 		group.UserSettings.FsConfig.SFTPConfig.Password, group.UserSettings.FsConfig.SFTPConfig.PrivateKey,
 		group.UserSettings.FsConfig.SFTPConfig.KeyPassphrase, group.UserSettings.FsConfig.HTTPConfig.Password,
-		group.UserSettings.FsConfig.HTTPConfig.APIKey)
+		group.UserSettings.FsConfig.HTTPConfig.APIKey, group.UserSettings.FsConfig.IRODSConfig.Password)
 
 	err = dataprovider.UpdateGroup(&updatedGroup, group.Users, claims.Username, ipAddr)
 	if err != nil {

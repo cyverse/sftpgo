@@ -19,6 +19,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.8
 	github.com/cockroachdb/cockroach-go/v2 v2.3.3
 	github.com/coreos/go-oidc/v3 v3.5.0
+	github.com/cyverse/go-irodsclient v0.11.4
 	github.com/drakkan/webdav v0.0.0-20230227175313-32996838bcd8
 	github.com/eikenb/pipeat v0.0.0-20210730190139-06b3e6902001
 	github.com/fclairamb/ftpserverlib v0.21.0
@@ -33,7 +34,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/grandcat/zeroconf v1.0.0
 	github.com/hashicorp/go-hclog v1.5.0
-	github.com/hashicorp/go-plugin v1.4.10-0.20230321181155-4b35dc2fedaa
+	github.com/hashicorp/go-plugin v1.4.10-0.20230403150917-e889c1ba1044
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/jackc/pgx/v5 v5.3.2-0.20230324225134-e9d64ec29d90
 	github.com/jlaffaye/ftp v0.0.0-20201112195030-9aae4d151126
@@ -139,6 +140,7 @@ require (
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/oklog/run v1.1.0 // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
@@ -147,6 +149,7 @@ require (
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shoenig/go-m1cpu v0.1.5 // indirect
+	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -164,11 +167,13 @@ require (
 	google.golang.org/grpc v1.54.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace (
 	github.com/jlaffaye/ftp => github.com/drakkan/ftp v0.0.0-20201114075148-9b9adce499a9
 	github.com/robfig/cron/v3 => github.com/drakkan/cron/v3 v3.0.0-20230222140221-217a1e4d96c0
+	github.com/sftpgo/sdk => github.com/cyverse/sftpgo-sdk v0.1.3-0.20230410232438-7190b52214b0
 	golang.org/x/crypto => github.com/drakkan/crypto v0.0.0-20230106095953-5417b4dfde62
 )

@@ -156,6 +156,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	currentSFTPKeyPassphrase := user.FsConfig.SFTPConfig.KeyPassphrase
 	currentHTTPPassword := user.FsConfig.HTTPConfig.Password
 	currentHTTPAPIKey := user.FsConfig.HTTPConfig.APIKey
+	currentIRODSPassword := user.FsConfig.IRODSConfig.Password
 
 	user.Permissions = make(map[string][]string)
 	user.FsConfig.S3Config = vfs.S3FsConfig{}
@@ -164,6 +165,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	user.FsConfig.CryptConfig = vfs.CryptFsConfig{}
 	user.FsConfig.SFTPConfig = vfs.SFTPFsConfig{}
 	user.FsConfig.HTTPConfig = vfs.HTTPFsConfig{}
+	user.FsConfig.IRODSConfig = vfs.IRODSFsConfig{}
 	user.Filters.TOTPConfig = dataprovider.UserTOTPConfig{}
 	user.Filters.RecoveryCodes = nil
 	user.VirtualFolders = nil
@@ -183,7 +185,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	updateEncryptedSecrets(&user.FsConfig, currentS3AccessSecret, currentAzAccountKey, currentAzSASUrl,
 		currentGCSCredentials, currentCryptoPassphrase, currentSFTPPassword, currentSFTPKey, currentSFTPKeyPassphrase,
-		currentHTTPPassword, currentHTTPAPIKey)
+		currentHTTPPassword, currentHTTPAPIKey, currentIRODSPassword)
 	err = dataprovider.UpdateUser(&user, claims.Username, util.GetIPFromRemoteAddress(r.RemoteAddr))
 	if err != nil {
 		sendAPIResponse(w, r, err, "", getRespStatus(err))
@@ -268,7 +270,7 @@ func disconnectUser(username, admin string) {
 
 func updateEncryptedSecrets(fsConfig *vfs.Filesystem, currentS3AccessSecret, currentAzAccountKey, currentAzSASUrl,
 	currentGCSCredentials, currentCryptoPassphrase, currentSFTPPassword, currentSFTPKey, currentSFTPKeyPassphrase,
-	currentHTTPPassword, currentHTTPAPIKey *kms.Secret) {
+	currentHTTPPassword, currentHTTPAPIKey, currentIRODSPassword *kms.Secret) {
 	// we use the new access secret if plain or empty, otherwise the old value
 	switch fsConfig.Provider {
 	case sdk.S3FilesystemProvider:
@@ -296,12 +298,16 @@ func updateEncryptedSecrets(fsConfig *vfs.Filesystem, currentS3AccessSecret, cur
 		updateSFTPFsEncryptedSecrets(fsConfig, currentSFTPPassword, currentSFTPKey, currentSFTPKeyPassphrase)
 	case sdk.HTTPFilesystemProvider:
 		updateHTTPFsEncryptedSecrets(fsConfig, currentHTTPPassword, currentHTTPAPIKey)
+	case sdk.IRODSFilesystemProvider:
+		if fsConfig.IRODSConfig.Password.IsNotPlainAndNotEmpty() {
+			fsConfig.IRODSConfig.Password = currentIRODSPassword
+		}
 	}
+
 }
 
 func updateSFTPFsEncryptedSecrets(fsConfig *vfs.Filesystem, currentSFTPPassword, currentSFTPKey,
-	currentSFTPKeyPassphrase *kms.Secret,
-) {
+	currentSFTPKeyPassphrase *kms.Secret) {
 	if fsConfig.SFTPConfig.Password.IsNotPlainAndNotEmpty() {
 		fsConfig.SFTPConfig.Password = currentSFTPPassword
 	}

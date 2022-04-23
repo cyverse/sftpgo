@@ -4304,6 +4304,7 @@ components:
         - 4
         - 5
         - 6
+        - 7
       description: |
         Filesystem providers:
           * `0` - Local filesystem
@@ -4313,6 +4314,7 @@ components:
           * `4` - Local filesystem encrypted
           * `5` - SFTP
           * `6` - HTTP filesystem
+          * `7` - iRODS Storage
     EventActionTypes:
       type: integer
       enum:
@@ -4985,6 +4987,26 @@ components:
              Defines how to check if this config points to the same server as another config. If different configs point to the same server the renaming between the fs configs is allowed:
               * `0` username and endpoint must match. This is the default
               * `1` only the endpoint must match
+    IRODSFsConfig:
+      type: object
+      properties:
+        endpoint:
+          type: string
+          description: 'remote iRODS endpoint as host:port'
+        username:
+          type: string
+          description: 'iRODS username'
+        proxy_username:
+          type: string
+          description: 'iRODS proxy username'
+        password:
+          $ref: '#/components/schemas/Secret'
+        collection_path:
+          type: string
+          description: 'iRODS Collection Path to access'
+        resource:
+          type: string
+          description: 'iRODS Resource Sever (default "")'
     FilesystemConfig:
       type: object
       properties:
@@ -5002,6 +5024,8 @@ components:
           $ref: '#/components/schemas/SFTPFsConfig'
         httpconfig:
           $ref: '#/components/schemas/HTTPFsConfig'
+        irodsconfig:
+          $ref: '#/components/schemas/IRODSFsConfig'
       description: Storage filesystem details
     BaseVirtualFolder:
       type: object

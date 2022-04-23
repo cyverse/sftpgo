@@ -117,6 +117,8 @@ func (v *BaseVirtualFolder) GetStorageDescrition() string {
 		return fmt.Sprintf("SFTP: %s", v.FsConfig.SFTPConfig.Endpoint)
 	case sdk.HTTPFilesystemProvider:
 		return fmt.Sprintf("HTTP: %s", v.FsConfig.HTTPConfig.Endpoint)
+	case sdk.IRODSFilesystemProvider:
+		return fmt.Sprintf("iRODS: %v", v.FsConfig.IRODSConfig.Endpoint)
 	default:
 		return ""
 	}
@@ -142,6 +144,8 @@ func (v *BaseVirtualFolder) hideConfidentialData() {
 		v.FsConfig.SFTPConfig.HideConfidentialData()
 	case sdk.HTTPFilesystemProvider:
 		v.FsConfig.HTTPConfig.HideConfidentialData()
+	case sdk.IRODSFilesystemProvider:
+		v.FsConfig.IRODSConfig.HideConfidentialData()
 	}
 }
 
@@ -206,6 +210,8 @@ func (v *VirtualFolder) GetFilesystem(connectionID string, forbiddenSelfUsers []
 		return NewSFTPFs(connectionID, v.VirtualPath, v.MappedPath, forbiddenSelfUsers, v.FsConfig.SFTPConfig)
 	case sdk.HTTPFilesystemProvider:
 		return NewHTTPFs(connectionID, v.MappedPath, v.VirtualPath, v.FsConfig.HTTPConfig)
+	case sdk.IRODSFilesystemProvider:
+		return NewIRODSFs(connectionID, v.MappedPath, v.VirtualPath, v.FsConfig.IRODSConfig)
 	default:
 		return NewOsFs(connectionID, v.MappedPath, v.VirtualPath), nil
 	}

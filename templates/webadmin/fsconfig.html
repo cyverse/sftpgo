@@ -540,6 +540,59 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
                 </small>
             </div>
         </div>
+
+        <div class="form-group row fsconfig fsconfig-irodsfs">
+            <label for="idIRODSEndpoint" class="col-sm-2 col-form-label">Endpoint</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="idIRODSEndpoint" name="irods_endpoint" placeholder=""
+                    value="{{.IRODSConfig.Endpoint}}" maxlength="255" aria-describedby="IRODSEndpointHelpBlock">
+                <small id="IRODSEndpointHelpBlock" class="form-text text-muted">
+                    Endpoint as host:port, port is optional
+                </small>
+            </div>
+        </div>
+
+        <div class="form-group row fsconfig fsconfig-irodsfs">
+            <label for="idIRODSUsername" class="col-sm-2 col-form-label">Username</label>
+            <div class="col-sm-3">
+                <input type="text" class="form-control" id="idIRODSUsername" name="irods_username" placeholder=""
+                    value="{{.IRODSConfig.Username}}" maxlength="255">
+            </div>
+            <div class="col-sm-2"></div>
+            <label for="idIRODSPassword" class="col-sm-2 col-form-label">Password</label>
+            <div class="col-sm-3">
+                <input type="password" class="form-control" id="idIRODSPassword" name="irods_password" placeholder=""
+                    value="{{if .IRODSConfig.Password.IsEncrypted}}{{.RedactedSecret}}{{else}}{{.IRODSConfig.Password.GetPayload}}{{end}}">
+            </div>
+        </div>
+
+        <div class="form-group row fsconfig fsconfig-irodsfs">
+            <label for="idIRODSCollectionPath" class="col-sm-2 col-form-label">Collection Path</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="idIRODSCollectionPath" name="irods_collection" placeholder=""
+                    value="{{.IRODSConfig.CollectionPath}}" aria-describedby="IRODSCollectionPathHelpBlock">
+                <small id="IRODSCollectionPathHelpBlock" class="form-text text-muted">
+                    iRODS Collection Path. Example: "/zone/home/user/subdir".
+                </small>
+            </div>
+        </div>
+
+        <div class="form-group row fsconfig fsconfig-irodsfs">
+            <label for="idIRODSProxyUsername" class="col-sm-2 col-form-label">Proxy Username</label>
+            <div class="col-sm-3">
+                <input type="text" class="form-control" id="idIRODSProxyUsername" name="irods_proxyusername" placeholder=""
+                    value="{{.IRODSConfig.ProxyUsername}}" maxlength="255">
+            </div>
+            <div class="col-sm-2"></div>
+            <label for="idIRODSResourceServer" class="col-sm-2 col-form-label">Resource Server</label>
+            <div class="col-sm-3">
+                <input type="text" class="form-control" id="idIRODSResourceServer" name="irods_resource" placeholder=""
+                    value="{{.IRODSConfig.ResourceServer}}" aria-describedby="IRODSResourceServerPathHelpBlock">
+                <small id="IRODSResourceServerHelpBlock" class="form-text text-muted">
+                    iRODS Resource Server, optional.
+                </small>
+            </div>
+        </div>
     </div>
 </div>
 {{end}}

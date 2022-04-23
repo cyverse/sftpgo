@@ -170,6 +170,8 @@ func (u *User) getRootFs(connectionID string) (fs vfs.Fs, err error) {
 		return vfs.NewSFTPFs(connectionID, "", u.GetHomeDir(), forbiddenSelfUsers, u.FsConfig.SFTPConfig)
 	case sdk.HTTPFilesystemProvider:
 		return vfs.NewHTTPFs(connectionID, u.GetHomeDir(), "", u.FsConfig.HTTPConfig)
+	case sdk.IRODSFilesystemProvider:
+		return vfs.NewIRODSFs(connectionID, u.GetHomeDir(), "", u.FsConfig.IRODSConfig)
 	default:
 		return vfs.NewOsFs(connectionID, u.GetHomeDir(), ""), nil
 	}
