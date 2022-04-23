@@ -30,6 +30,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                     <option value="3" data-i18n="storage.azblob" {{if eq .Provider 3 }}selected{{end}}>Azure Blob Storage</option>
                     <option value="5" data-i18n="storage.sftp" {{if eq .Provider 5 }}selected{{end}}>SFTP</option>
                     <option value="6" data-i18n="storage.http" {{if eq .Provider 6 }}selected{{end}}>HTTP</option>
+                    <option value="7" data-i18n="storage.irods" {{if eq .Provider 7 }}selected{{end}}>iRODS</option>
                 </select>
             </div>
         </div>
@@ -519,6 +520,124 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
             </div>
         </div>
 
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSEndpoint" data-i18n="storage.irods_endpoint" class="col-md-3 col-form-label">Endpoint</label>
+            <div class="col-md-9">
+                <input id="idIRODSEndpoint" type="text" class="form-control" name="irods_endpoint" value="{{.IRODSConfig.Endpoint}}"  aria-describedby="idIRODSEndpointHelp"/>
+                <div id="idIRODSEndpointHelp" class="form-text" data-i18n="storage.irods_endpoint_help"></div>
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSUsername" data-i18n="login.username" class="col-md-3 col-form-label">Username</label>
+            <div class="col-md-9">
+                <input id="idIRODSUsername" type="text" class="form-control" name="irods_username" value="{{.IRODSConfig.Username}}" spellcheck="false" />
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSPassword" data-i18n="login.password" class="col-md-3 col-form-label">Password</label>
+            <div class="col-md-9">
+                <input id="idIRODSPassword" type="password" class="form-control" name="irods_password" autocomplete="new-password" spellcheck="false"
+                    value="{{if .IRODSConfig.Password.IsEncrypted}}{{.RedactedSecret}}{{else}}{{.IRODSConfig.Password.GetPayload}}{{end}}" />
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSProxyUsername" data-i18n="storage.irods_proxyusername" class="col-md-3 col-form-label">Proxy Username</label>
+            <div class="col-md-9">
+                <input id="idIRODSProxyUsername" type="text" class="form-control" name="irods_proxyusername" value="{{.IRODSConfig.ProxyUsername}}" spellcheck="false" aria-describedby="idIRODSProxyUsernameHelp"/>
+                <div id="idIRODSProxyUsernameHelp" class="form-text" data-i18n="storage.irods_proxyusername_help"></div>
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSCollectionPath" data-i18n="storage.irods_collection_path" class="col-md-3 col-form-label">Collection Path</label>
+            <div class="col-md-9">
+                <input id="idIRODSCollectionPath" type="text" class="form-control" name="irods_collection" value="{{.IRODSConfig.CollectionPath}}" aria-describedby="idIRODSCollectionPathHelp"/>
+                <div id="idIRODSCollectionPathHelp" class="form-text" data-i18n="storage.irods_collection_path_help"></div>
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSResourceServer" data-i18n="storage.irods_resource" class="col-md-3 col-form-label">Resource Server</label>
+            <div class="col-md-9">
+                <input id="idIRODSResourceServer" type="text" class="form-control" name="irods_resource" value="{{.IRODSConfig.ResourceServer}}" aria-describedby="idIRODSResourceServerHelp"/>
+                <div id="idIRODSResourceServerHelp" class="form-text" data-i18n="storage.irods_resource_help"></div>
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSAuthScheme" data-i18n="storage.irods_auth_scheme" class="col-md-3 col-form-label">Authentication Scheme</label>
+            <div class="col-md-9">
+                <select id="idIRODSAuthScheme" name="irods_auth_scheme" class="form-select" data-control="i18n-select2" data-hide-search="true">
+                    <option value="native" {{if eq .IRODSConfig.AuthScheme "" }}selected{{end}}>Default (Native)</option>
+                    <option value="native" {{if eq .IRODSConfig.AuthScheme "native" }}selected{{end}}>Native</option>
+                    <option value="pam" {{if eq .IRODSConfig.AuthScheme "pam" }}selected{{end}}>PAM</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group row align-items-center mt-10 fsconfig-irods">
+            <label data-i18n="storage.irods_require_cs_negotiation" class="col-md-3 col-form-label" for="idIRODSRequireCSNegotiation">Use Client-Server negotiation</label>
+            <div class="col-md-9">
+                <div class="form-check form-switch form-check-custom form-check-solid">
+                    <input class="form-check-input" type="checkbox" id="idIRODSRequireCSNegotiation" name="irods_require_cs_negotiation" {{if .IRODSConfig.RequireClientServerNegotiation}}checked{{end}}/>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSCSNegotiationPolicy" data-i18n="storage.irods_cs_negotiation_policy" class="col-md-3 col-form-label">Client-Server Negotiation Policy</label>
+            <div class="col-md-9">
+                <select id="idIRODSCSNegotiationPolicy" name="irods_cs_negotiation_policy" class="form-select" data-control="i18n-select2" data-hide-search="true">
+                    <option value="CS_NEG_REFUSE" {{if eq .IRODSConfig.ClientServerNegotiationPolicy "" }}selected{{end}}>Default (CS_NEG_REFUSE)</option>
+                    <option value="CS_NEG_REFUSE" {{if eq .IRODSConfig.ClientServerNegotiationPolicy "CS_NEG_REFUSE" }}selected{{end}}>CS_NEG_REFUSE</option>
+                    <option value="CS_NEG_REQUIRE" {{if eq .IRODSConfig.ClientServerNegotiationPolicy "CS_NEG_REQUIRE" }}selected{{end}}>CS_NEG_REQUIRE</option>
+                    <option value="CS_NEG_DONT_CARE" {{if eq .IRODSConfig.ClientServerNegotiationPolicy "CS_NEG_DONT_CARE" }}selected{{end}}>CS_NEG_DONT_CARE</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSSSLCACertificatePath" data-i18n="storage.irods_ssl_ca_cert_path" class="col-md-3 col-form-label">SSL CA Certificate Path</label>
+            <div class="col-md-9">
+                <input id="idIRODSSSLCACertificatePath" type="text" class="form-control" name="irods_ssl_ca_cert_path" value="{{.IRODSConfig.SSLCACertificatePath}}" aria-describedby="idIRODSSSLCACertificatePathHelp"/>
+                <div id="idIRODSSSLCACertificatePathHelp" class="form-text" data-i18n="storage.irods_ssl_ca_cert_path_help"></div>
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSSSLAlgorithm" data-i18n="storage.irods_ssl_algorithm" class="col-md-3 col-form-label">SSL Encryption Algorithm</label>
+            <div class="col-md-9">
+                <input id="idIRODSSSLAlgorithm" type="text" class="form-control" name="irods_ssl_algorithm" value="{{.IRODSConfig.SSLAlgorithm}}" aria-describedby="idIRODSSSLAlgorithmHelp"/>
+                <div id="idIRODSSSLAlgorithmHelp" class="form-text" data-i18n="storage.irods_ssl_algorithm_help"></div>
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSSSLKeySize" data-i18n="storage.irods_ssl_algorithm" class="col-md-3 col-form-label">SSL Encryption Key Size</label>
+            <div class="col-md-9">
+                <input id="idIRODSSSLKeySize" type="number" class="form-control" name="irods_ssl_key_size" value="{{.IRODSConfig.SSLKeySize}}" aria-describedby="idIRODSSSLKeySizeHelp"/>
+                <div id="idIRODSSSLKeySizeHelp" class="form-text" data-i18n="storage.irods_ssl_key_size_help"></div>
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSSSLSaltSize" data-i18n="storage.irods_ssl_salt_size" class="col-md-3 col-form-label">SSL Encryption Salt Size</label>
+            <div class="col-md-9">
+                <input id="idIRODSSSLSaltSize" type="number" min="0" max="1024" class="form-control" name="irods_ssl_salt_size" value="{{.IRODSConfig.SSLSaltSize}}" aria-describedby="idIRODSSSLSaltSizeHelp"/>
+                <div id="idIRODSSSLSaltSizeHelp" class="form-text" data-i18n="storage.irods_ssl_salt_size_help"></div>
+            </div>
+        </div>
+
+        <div class="form-group row mt-10 fsconfig-irods">
+            <label for="idIRODSSSLHashRounds" data-i18n="storage.irods_ssl_hash_rounds" class="col-md-3 col-form-label">SSL Encryption Hash Rounds</label>
+            <div class="col-md-9">
+                <input id="idIRODSSSLHashRounds" type="number" class="form-control" name="irods_ssl_hash_rounds" value="{{.IRODSConfig.SSLHashRounds}}" aria-describedby="idIRODSSSLHashRoundsHelp"/>
+                <div id="idIRODSSSLHashRoundsHelp" class="form-text" data-i18n="storage.irods_ssl_hash_rounds_help"></div>
+            </div>
+        </div>
     </div>
 </div>
 {{- end}}

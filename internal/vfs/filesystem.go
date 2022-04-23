@@ -34,6 +34,7 @@ type Filesystem struct {
 	CryptConfig    CryptFsConfig          `json:"cryptconfig,omitempty"`
 	SFTPConfig     SFTPFsConfig           `json:"sftpconfig,omitempty"`
 	HTTPConfig     HTTPFsConfig           `json:"httpconfig,omitempty"`
+	IRODSConfig    IRODSFsConfig          `json:"irodsconfig,omitempty"`
 }
 
 // SetEmptySecrets sets the secrets to empty
@@ -49,6 +50,7 @@ func (f *Filesystem) SetEmptySecrets() {
 	f.SFTPConfig.KeyPassphrase = kms.NewEmptySecret()
 	f.HTTPConfig.Password = kms.NewEmptySecret()
 	f.HTTPConfig.APIKey = kms.NewEmptySecret()
+	f.IRODSConfig.Password = kms.NewEmptySecret()
 }
 
 // SetEmptySecretsIfNil sets the secrets to empty if nil
@@ -85,6 +87,9 @@ func (f *Filesystem) SetEmptySecretsIfNil() {
 	}
 	if f.HTTPConfig.APIKey == nil {
 		f.HTTPConfig.APIKey = kms.NewEmptySecret()
+	}
+	if f.IRODSConfig.Password == nil {
+		f.IRODSConfig.Password = kms.NewEmptySecret()
 	}
 }
 
@@ -132,6 +137,8 @@ func (f *Filesystem) IsEqual(other Filesystem) bool {
 		return f.SFTPConfig.isEqual(other.SFTPConfig)
 	case sdk.HTTPFilesystemProvider:
 		return f.HTTPConfig.isEqual(other.HTTPConfig)
+	case sdk.IRODSFilesystemProvider:
+		return f.IRODSConfig.isEqual(&other.IRODSConfig)
 	default:
 		return true
 	}
@@ -155,6 +162,8 @@ func (f *Filesystem) IsSameResource(other Filesystem) bool {
 		return f.SFTPConfig.isSameResource(other.SFTPConfig)
 	case sdk.HTTPFilesystemProvider:
 		return f.HTTPConfig.isSameResource(other.HTTPConfig)
+	case sdk.IRODSFilesystemProvider:
+		return f.IRODSConfig.isSameResource(other.IRODSConfig)
 	default:
 		return true
 	}
@@ -184,6 +193,7 @@ func (f *Filesystem) Validate(additionalData string) error {
 		f.CryptConfig = CryptFsConfig{}
 		f.SFTPConfig = SFTPFsConfig{}
 		f.HTTPConfig = HTTPFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
 		return nil
 	case sdk.GCSFilesystemProvider:
 		if err := f.GCSConfig.ValidateAndEncryptCredentials(additionalData); err != nil {
@@ -195,6 +205,7 @@ func (f *Filesystem) Validate(additionalData string) error {
 		f.CryptConfig = CryptFsConfig{}
 		f.SFTPConfig = SFTPFsConfig{}
 		f.HTTPConfig = HTTPFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
 		return nil
 	case sdk.AzureBlobFilesystemProvider:
 		if err := f.AzBlobConfig.ValidateAndEncryptCredentials(additionalData); err != nil {
@@ -206,6 +217,7 @@ func (f *Filesystem) Validate(additionalData string) error {
 		f.CryptConfig = CryptFsConfig{}
 		f.SFTPConfig = SFTPFsConfig{}
 		f.HTTPConfig = HTTPFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
 		return nil
 	case sdk.CryptedFilesystemProvider:
 		if err := f.CryptConfig.ValidateAndEncryptCredentials(additionalData); err != nil {
@@ -217,6 +229,7 @@ func (f *Filesystem) Validate(additionalData string) error {
 		f.AzBlobConfig = AzBlobFsConfig{}
 		f.SFTPConfig = SFTPFsConfig{}
 		f.HTTPConfig = HTTPFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
 		return validateOSFsConfig(&f.CryptConfig.OSFsConfig)
 	case sdk.SFTPFilesystemProvider:
 		if err := f.SFTPConfig.ValidateAndEncryptCredentials(additionalData); err != nil {
@@ -228,12 +241,23 @@ func (f *Filesystem) Validate(additionalData string) error {
 		f.AzBlobConfig = AzBlobFsConfig{}
 		f.CryptConfig = CryptFsConfig{}
 		f.HTTPConfig = HTTPFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
 		return nil
 	case sdk.HTTPFilesystemProvider:
 		if err := f.HTTPConfig.ValidateAndEncryptCredentials(additionalData); err != nil {
 			return err
 		}
 		f.OSConfig = sdk.OSFsConfig{}
+		f.S3Config = S3FsConfig{}
+		f.GCSConfig = GCSFsConfig{}
+		f.AzBlobConfig = AzBlobFsConfig{}
+		f.CryptConfig = CryptFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
+		return nil
+	case sdk.IRODSFilesystemProvider:
+		if err := f.IRODSConfig.ValidateAndEncryptCredentials(additionalData); err != nil {
+			return err
+		}
 		f.S3Config = S3FsConfig{}
 		f.GCSConfig = GCSFsConfig{}
 		f.AzBlobConfig = AzBlobFsConfig{}
@@ -247,6 +271,7 @@ func (f *Filesystem) Validate(additionalData string) error {
 		f.CryptConfig = CryptFsConfig{}
 		f.SFTPConfig = SFTPFsConfig{}
 		f.HTTPConfig = HTTPFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
 		return validateOSFsConfig(&f.OSConfig)
 	default:
 		return util.NewI18nError(
@@ -287,6 +312,8 @@ func (f *Filesystem) HasRedactedSecret() bool {
 			return true
 		}
 		return f.HTTPConfig.APIKey.IsRedacted()
+	case sdk.IRODSFilesystemProvider:
+		return f.IRODSConfig.Password.IsRedacted()
 	}
 
 	return false
@@ -307,6 +334,8 @@ func (f *Filesystem) HideConfidentialData() {
 		f.SFTPConfig.HideConfidentialData()
 	case sdk.HTTPFilesystemProvider:
 		f.HTTPConfig.HideConfidentialData()
+	case sdk.IRODSFilesystemProvider:
+		f.IRODSConfig.HideConfidentialData()
 	}
 }
 
@@ -398,6 +427,24 @@ func (f *Filesystem) GetACopy() Filesystem {
 			},
 			Password: f.HTTPConfig.Password.Clone(),
 			APIKey:   f.HTTPConfig.APIKey.Clone(),
+		},
+		IRODSConfig: IRODSFsConfig{
+			BaseIRODSFsConfig: sdk.BaseIRODSFsConfig{
+				Endpoint:                       f.IRODSConfig.Endpoint,
+				CollectionPath:                 f.IRODSConfig.CollectionPath,
+				Username:                       f.IRODSConfig.Username,
+				ProxyUsername:                  f.IRODSConfig.ProxyUsername,
+				ResourceServer:                 f.IRODSConfig.ResourceServer,
+				AuthScheme:                     f.IRODSConfig.AuthScheme,
+				RequireClientServerNegotiation: f.IRODSConfig.RequireClientServerNegotiation,
+				ClientServerNegotiationPolicy:  f.IRODSConfig.ClientServerNegotiationPolicy,
+				SSLCACertificatePath:           f.IRODSConfig.SSLCACertificatePath,
+				SSLKeySize:                     f.IRODSConfig.SSLKeySize,
+				SSLAlgorithm:                   f.IRODSConfig.SSLAlgorithm,
+				SSLSaltSize:                    f.IRODSConfig.SSLSaltSize,
+				SSLHashRounds:                  f.IRODSConfig.SSLHashRounds,
+			},
+			Password: f.IRODSConfig.Password.Clone(),
 		},
 	}
 	if len(f.SFTPConfig.Fingerprints) > 0 {

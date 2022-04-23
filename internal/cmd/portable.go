@@ -100,6 +100,20 @@ var (
 	portableSFTPPrefix                 string
 	portableSFTPDisableConcurrentReads bool
 	portableSFTPDBufferSize            int64
+	portableIRODSEndpoint              string
+	portableIRODSCollectionPath        string
+	portableIRODSUsername              string
+	portableIRODSProxyUsername         string
+	portableIRODSResourceServer        string
+	portableIRODSAuthScheme            string
+	portableIRODSRequireCSNegotiation  bool
+	portableIRODSCSNegotiationPolicy   string
+	portableIRODSSSLCACertificatePath  string
+	portableIRODSSSLKeySize            int
+	portableIRODSSSLAlgorithm          string
+	portableIRODSSSLSaltSize           int
+	protableIRODSSSLHashRounds         int
+	portableIRODSPassword              string
 	portableCmd                        = &cobra.Command{
 		Use:   "portable",
 		Short: "Serve a single directory/account",
@@ -285,6 +299,24 @@ Please take a look at the usage below to customize the serving parameters`,
 							PrivateKey:    kms.NewPlainSecret(portableSFTPPrivateKey),
 							KeyPassphrase: kms.NewEmptySecret(),
 						},
+						IRODSConfig: vfs.IRODSFsConfig{
+							BaseIRODSFsConfig: sdk.BaseIRODSFsConfig{
+								Endpoint:                       portableIRODSEndpoint,
+								CollectionPath:                 portableIRODSCollectionPath,
+								Username:                       portableIRODSUsername,
+								ProxyUsername:                  portableIRODSProxyUsername,
+								ResourceServer:                 portableIRODSResourceServer,
+								AuthScheme:                     portableIRODSAuthScheme,
+								RequireClientServerNegotiation: portableIRODSRequireCSNegotiation,
+								ClientServerNegotiationPolicy:  portableIRODSCSNegotiationPolicy,
+								SSLCACertificatePath:           portableIRODSSSLCACertificatePath,
+								SSLKeySize:                     portableIRODSSSLKeySize,
+								SSLAlgorithm:                   portableIRODSSSLAlgorithm,
+								SSLSaltSize:                    portableIRODSSSLSaltSize,
+								SSLHashRounds:                  protableIRODSSSLHashRounds,
+							},
+							Password: kms.NewPlainSecret(portableIRODSPassword),
+						},
 					},
 				},
 			}
@@ -358,7 +390,8 @@ s3fs => AWS S3 compatible (legacy: 1)
 gcsfs => Google Cloud Storage (legacy: 2)
 azblobfs => Azure Blob Storage (legacy: 3)
 cryptfs => Encrypted local filesystem (legacy: 4)
-sftpfs => SFTP (legacy: 5)`)
+sftpfs => SFTP (legacy: 5)
+irodsfs => iRODS Storage (legacy: 7)`)
 	portableCmd.Flags().StringVar(&portableS3Bucket, "s3-bucket", "", "")
 	portableCmd.Flags().StringVar(&portableS3Region, "s3-region", "", "")
 	portableCmd.Flags().StringVar(&portableS3AccessKey, "s3-access-key", "", "")
@@ -451,6 +484,21 @@ to get completed before shutting down.
 A graceful shutdown is triggered by an
 interrupt signal.
 `)
+	portableCmd.Flags().StringVar(&portableIRODSEndpoint, "irods-endpoint", "", `iRODS endpoint as host:port for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSCollectionPath, "irods-collection", "", `iRODS collection path for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSUsername, "irods-username", "", `iRODS user for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSProxyUsername, "irods-proxyusername", "", `iRODS proxy user for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSResourceServer, "irods-resource", "", `iRODS resource server for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSAuthScheme, "irods-auth-scheme", "", `iRODS authentication scheme for iRODS provider`)
+	portableCmd.Flags().BoolVar(&portableIRODSRequireCSNegotiation, "irods-require-cs-negotiation", false, `iRODS client-server negotiation is required`)
+	portableCmd.Flags().StringVar(&portableIRODSCSNegotiationPolicy, "irods-cs-negotiation-policy", "", `iRODS client-server negotiation policy`)
+	portableCmd.Flags().StringVar(&portableIRODSSSLCACertificatePath, "irods-ssl-ca-cert", "", `iRODS SSL CA Certificate file path for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSSSLAlgorithm, "irods-ssl-algorithm", "", `iRODS SSL encryption algorithm for iRODS provider`)
+	portableCmd.Flags().IntVar(&portableIRODSSSLKeySize, "irods-ssl-key-size", 0, `iRODS SSL encryption key size for iRODS provider`)
+	portableCmd.Flags().IntVar(&portableIRODSSSLSaltSize, "irods-ssl-salt-size", 0, `iRODS SSL encryption salt size for iRODS provider`)
+	portableCmd.Flags().IntVar(&protableIRODSSSLHashRounds, "irods-ssl-hash-rounds", 0, `iRODS SSL encryption hash rounds for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSPassword, "irods-password", "", `iRODS password for iRODS provider`)
+
 	addConfigFlags(portableCmd)
 	rootCmd.AddCommand(portableCmd)
 }
@@ -539,6 +587,8 @@ func convertFsProvider() string {
 		return "4"
 	case "sftpfs":
 		return "5"
+	case "irodsfs":
+		return "7"
 	default:
 		return portableFsProvider
 	}

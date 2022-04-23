@@ -2165,7 +2165,10 @@ func compareFsConfig(expected *vfs.Filesystem, actual *vfs.Filesystem) error {
 	if err := compareSFTPFsConfig(expected, actual); err != nil {
 		return err
 	}
-	return compareHTTPFsConfig(expected, actual)
+	if err := compareHTTPFsConfig(expected, actual); err != nil {
+		return err
+	}
+	return compareIRODSFsConfig(expected, actual)
 }
 
 func compareS3Config(expected *vfs.Filesystem, actual *vfs.Filesystem) error { //nolint:gocyclo
@@ -2353,6 +2356,52 @@ func compareAzBlobConfig(expected *vfs.Filesystem, actual *vfs.Filesystem) error
 	}
 	if expected.AzBlobConfig.AccessTier != actual.AzBlobConfig.AccessTier {
 		return errors.New("azure Blob access tier mismatch")
+	}
+	return nil
+}
+
+func compareIRODSFsConfig(expected *vfs.Filesystem, actual *vfs.Filesystem) error {
+	if expected.IRODSConfig.Endpoint != actual.IRODSConfig.Endpoint {
+		return errors.New("IRODSFs endpoint mismatch")
+	}
+	if expected.IRODSConfig.CollectionPath != actual.IRODSConfig.CollectionPath {
+		return errors.New("IRODSFs collection path mismatch")
+	}
+	if expected.IRODSConfig.Username != actual.IRODSConfig.Username {
+		return errors.New("IRODSFs username mismatch")
+	}
+	if expected.IRODSConfig.ProxyUsername != actual.IRODSConfig.ProxyUsername {
+		return errors.New("IRODSFs proxy username mismatch")
+	}
+	if expected.IRODSConfig.ResourceServer != actual.IRODSConfig.ResourceServer {
+		return errors.New("IRODSFs resource server mismatch")
+	}
+	if expected.IRODSConfig.AuthScheme != actual.IRODSConfig.AuthScheme {
+		return errors.New("IRODSFs auth scheme mismatch")
+	}
+	if expected.IRODSConfig.RequireClientServerNegotiation != actual.IRODSConfig.RequireClientServerNegotiation {
+		return errors.New("IRODSFs require client-server negotiation mismatch")
+	}
+	if expected.IRODSConfig.ClientServerNegotiationPolicy != actual.IRODSConfig.ClientServerNegotiationPolicy {
+		return errors.New("IRODSFs client-server negotiation policy mismatch")
+	}
+	if expected.IRODSConfig.SSLCACertificatePath != actual.IRODSConfig.SSLCACertificatePath {
+		return errors.New("IRODSFs SSL CA certificate path scheme mismatch")
+	}
+	if expected.IRODSConfig.SSLKeySize != actual.IRODSConfig.SSLKeySize {
+		return errors.New("IRODSFs SSL encryption key size mismatch")
+	}
+	if expected.IRODSConfig.SSLAlgorithm != actual.IRODSConfig.SSLAlgorithm {
+		return errors.New("IRODSFs SSL encryption algorithm mismatch")
+	}
+	if expected.IRODSConfig.SSLSaltSize != actual.IRODSConfig.SSLSaltSize {
+		return errors.New("IRODSFs SSL salt size mismatch")
+	}
+	if expected.IRODSConfig.SSLHashRounds != actual.IRODSConfig.SSLHashRounds {
+		return errors.New("IRODSFs SSL hash rounds mismatch")
+	}
+	if err := checkEncryptedSecret(expected.IRODSConfig.Password, actual.IRODSConfig.Password); err != nil {
+		return fmt.Errorf("IRODSFs password mismatch: %v", err)
 	}
 	return nil
 }

@@ -361,6 +361,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                         case 6:
                             fsProvider = "HTTP";
                             break;
+                        case 7:
+                            fsProvider = "iRODS";
+                            break;
                     }
                     line["Filesystem"] = fsProvider;
                     let virtualFolders = [];

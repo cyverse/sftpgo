@@ -221,6 +221,8 @@ func newActionNotification(
 		endpoint = fsConfig.SFTPConfig.Endpoint
 	case sdk.HTTPFilesystemProvider:
 		endpoint = fsConfig.HTTPConfig.Endpoint
+	case sdk.IRODSFilesystemProvider:
+		endpoint = fsConfig.IRODSConfig.Endpoint
 	}
 
 	return &notifier.FsEvent{

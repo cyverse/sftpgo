@@ -129,6 +129,8 @@ func (s *Service) getPortableDirToServe() string {
 		return s.PortableUser.FsConfig.SFTPConfig.Prefix
 	case sdk.HTTPFilesystemProvider:
 		return "/"
+	case sdk.IRODSFilesystemProvider:
+		return s.PortableUser.FsConfig.IRODSConfig.CollectionPath
 	default:
 		return s.PortableUser.HomeDir
 	}
@@ -188,6 +190,9 @@ func (s *Service) configurePortableSecrets() {
 		s.PortableUser.FsConfig.HTTPConfig.Password = getSecretFromString(payload)
 		payload = s.PortableUser.FsConfig.HTTPConfig.APIKey.GetPayload()
 		s.PortableUser.FsConfig.HTTPConfig.APIKey = getSecretFromString(payload)
+	case sdk.IRODSFilesystemProvider:
+		payload := s.PortableUser.FsConfig.IRODSConfig.Password.GetPayload()
+		s.PortableUser.FsConfig.IRODSConfig.Password = getSecretFromString(payload)
 	}
 }
 

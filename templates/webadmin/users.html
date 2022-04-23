@@ -394,6 +394,8 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                                         return $.t('storage.sftp');
                                     case 6:
                                         return $.t('storage.http');
+                                    case 7:
+                                        return $.t('storage.irods');
                                     default:
                                         return $.t('storage.local');
                                 }
@@ -737,6 +739,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                             break;
                         case 6:
                             fsProvider = "HTTP";
+                            break;
+                        case 7:
+                            fsProvider = "iRODS";
                             break;
                     }
                     line["Filesystem"] = fsProvider;

@@ -304,7 +304,7 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
     }
 
     function onFilesystemChanged(val){
-        const supportedFs = ["local", "s3", "gcs", "azblob", "crypt", "sftp", "http"];
+        const supportedFs = ["local", "s3", "gcs", "azblob", "crypt", "sftp", "http", "irods"];
         let fsName = "local";
         switch (val){
             case '1':
@@ -324,6 +324,9 @@ explicit grant from the SFTPGo Team (support@sftpgo.com).
                 break;
             case '6':
                 fsName = "http";
+                break;
+            case '7':
+                fsName = "irods";
                 break;
         }
         for (let i = 0; i < supportedFs.length; i++){

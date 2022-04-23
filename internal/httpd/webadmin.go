@@ -1660,6 +1660,53 @@ func getHTTPFsConfig(r *http.Request) vfs.HTTPFsConfig {
 	return config
 }
 
+func getIRODSConfig(r *http.Request) (vfs.IRODSFsConfig, error) {
+	var err error
+	config := vfs.IRODSFsConfig{}
+	config.Endpoint = r.Form.Get("irods_endpoint")
+	config.Username = r.Form.Get("irods_username")
+	config.ProxyUsername = r.Form.Get("irods_proxyusername")
+	config.CollectionPath = r.Form.Get("irods_collection")
+	config.ResourceServer = r.Form.Get("irods_resource")
+	config.AuthScheme = r.Form.Get("irods_auth_scheme")
+	config.RequireClientServerNegotiation = r.Form.Get("irods_require_cs_negotiation") != ""
+	config.ClientServerNegotiationPolicy = r.Form.Get("irods_cs_negotiation_policy")
+	config.SSLCACertificatePath = r.Form.Get("irods_ssl_ca_cert_path")
+	sslKeySizeStr := r.Form.Get("irods_ssl_key_size")
+	if sslKeySizeStr == "" {
+		sslKeySizeStr = "32"
+	}
+	encryptionKeySize, err := strconv.ParseInt(sslKeySizeStr, 10, 32)
+	if err != nil {
+		return config, fmt.Errorf("invalid irods ssl key size: %w", err)
+	}
+	config.SSLKeySize = int(encryptionKeySize)
+	config.SSLAlgorithm = r.Form.Get("irods_ssl_algorithm")
+	if config.SSLAlgorithm == "" {
+		config.SSLAlgorithm = "AES-256-CBC"
+	}
+	sslSaltSizeStr := r.Form.Get("irods_ssl_salt_size")
+	if sslSaltSizeStr == "" {
+		sslSaltSizeStr = "8"
+	}
+	saltSize, err := strconv.ParseInt(sslSaltSizeStr, 10, 32)
+	if err != nil {
+		return config, fmt.Errorf("invalid irods ssl salt size: %w", err)
+	}
+	config.SSLSaltSize = int(saltSize)
+	sslHashRoundsStr := r.Form.Get("irods_ssl_hash_rounds")
+	if sslHashRoundsStr == "" {
+		sslHashRoundsStr = "16"
+	}
+	hashRounds, err := strconv.ParseInt(sslHashRoundsStr, 10, 32)
+	if err != nil {
+		return config, fmt.Errorf("invalid irods ssl hash rounds: %w", err)
+	}
+	config.SSLHashRounds = int(hashRounds)
+	config.Password = getSecretFromFormField(r, "irods_password")
+	return config, err
+}
+
 func getAzureConfig(r *http.Request) (vfs.AzBlobFsConfig, error) {
 	var err error
 	config := vfs.AzBlobFsConfig{}
@@ -1738,6 +1785,12 @@ func getFsConfigFromPostFields(r *http.Request) (vfs.Filesystem, error) {
 		fs.SFTPConfig = config
 	case sdk.HTTPFilesystemProvider:
 		fs.HTTPConfig = getHTTPFsConfig(r)
+	case sdk.IRODSFilesystemProvider:
+		config, err := getIRODSConfig(r)
+		if err != nil {
+			return fs, err
+		}
+		fs.IRODSConfig = config
 	}
 	return fs, nil
 }
@@ -1849,6 +1902,8 @@ func getFolderFromTemplate(folder vfs.BaseVirtualFolder, name string) vfs.BaseVi
 		folder.FsConfig.SFTPConfig = getSFTPFsFromTemplate(folder.FsConfig.SFTPConfig, replacements)
 	case sdk.HTTPFilesystemProvider:
 		folder.FsConfig.HTTPConfig = getHTTPFsFromTemplate(folder.FsConfig.HTTPConfig, replacements)
+	case sdk.IRODSFilesystemProvider:
+		folder.FsConfig.IRODSConfig = getIRODSFsFromTemplate(folder.FsConfig.IRODSConfig, replacements)
 	}
 
 	return folder
@@ -1908,6 +1963,16 @@ func getHTTPFsFromTemplate(fsConfig vfs.HTTPFsConfig, replacements map[string]st
 	return fsConfig
 }
 
+func getIRODSFsFromTemplate(fsConfig vfs.IRODSFsConfig, replacements map[string]string) vfs.IRODSFsConfig {
+	fsConfig.Username = replacePlaceholders(fsConfig.Username, replacements)
+	if fsConfig.Password != nil && fsConfig.Password.IsPlain() {
+		payload := replacePlaceholders(fsConfig.Password.GetPayload(), replacements)
+		fsConfig.Password = kms.NewPlainSecret(payload)
+	}
+	return fsConfig
+
+}
+
 func getUserFromTemplate(user dataprovider.User, template userTemplateFields) dataprovider.User {
 	user.Username = template.Username
 	user.Password = template.Password
@@ -1945,6 +2010,8 @@ func getUserFromTemplate(user dataprovider.User, template userTemplateFields) da
 		user.FsConfig.SFTPConfig = getSFTPFsFromTemplate(user.FsConfig.SFTPConfig, replacements)
 	case sdk.HTTPFilesystemProvider:
 		user.FsConfig.HTTPConfig = getHTTPFsFromTemplate(user.FsConfig.HTTPConfig, replacements)
+	case sdk.IRODSFilesystemProvider:
+		user.FsConfig.IRODSConfig = getIRODSFsFromTemplate(user.FsConfig.IRODSConfig, replacements)
 	}
 
 	return user

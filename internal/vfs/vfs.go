@@ -1074,6 +1074,11 @@ func IsHTTPFs(fs Fs) bool {
 	return strings.HasPrefix(fs.Name(), httpFsName)
 }
 
+// IsIRODSFs returns true if fs is an IRODS filesystem
+func IsIRODSFs(fs Fs) bool {
+	return strings.HasPrefix(fs.Name(), irodsFsName)
+}
+
 // IsBufferedLocalOrSFTPFs returns true if this is a buffered SFTP or local filesystem
 func IsBufferedLocalOrSFTPFs(fs Fs) bool {
 	if osFs, ok := fs.(*OsFs); ok {
@@ -1103,7 +1108,7 @@ func IsLocalOrSFTPFs(fs Fs) bool {
 
 // HasTruncateSupport returns true if the fs supports truncate files
 func HasTruncateSupport(fs Fs) bool {
-	return IsLocalOsFs(fs) || IsSFTPFs(fs) || IsHTTPFs(fs)
+	return IsLocalOsFs(fs) || IsSFTPFs(fs) || IsHTTPFs(fs) || IsIRODSFs(fs)
 }
 
 // IsRenameAtomic returns true if renaming a directory is supposed to be atomic
@@ -1115,6 +1120,9 @@ func IsRenameAtomic(fs Fs) bool {
 		return false
 	}
 	if strings.HasPrefix(fs.Name(), azBlobFsName) {
+		return false
+	}
+	if strings.HasPrefix(fs.Name(), irodsFsName) {
 		return false
 	}
 	return true
@@ -1130,6 +1138,9 @@ func HasImplicitAtomicUploads(fs Fs) bool {
 	}
 	if strings.HasPrefix(fs.Name(), azBlobFsName) {
 		return uploadMode&16 == 0
+	}
+	if strings.HasPrefix(fs.Name(), irodsFsName) {
+		return true
 	}
 	return false
 }

@@ -1378,7 +1378,7 @@ func TestParseAllowedIPAndRanges(t *testing.T) {
 func TestHideConfidentialData(_ *testing.T) {
 	for _, provider := range []sdk.FilesystemProvider{sdk.LocalFilesystemProvider,
 		sdk.CryptedFilesystemProvider, sdk.S3FilesystemProvider, sdk.GCSFilesystemProvider,
-		sdk.AzureBlobFilesystemProvider, sdk.SFTPFilesystemProvider,
+		sdk.AzureBlobFilesystemProvider, sdk.SFTPFilesystemProvider, sdk.IRODSFilesystemProvider,
 	} {
 		u := dataprovider.User{
 			FsConfig: vfs.Filesystem{
@@ -1577,6 +1577,29 @@ func TestVfsSameResource(t *testing.T) {
 		HTTPConfig: vfs.HTTPFsConfig{
 			BaseHTTPFsConfig: sdk.BaseHTTPFsConfig{
 				Endpoint: "http://127.0.0.1/httpfs",
+				Username: "b",
+			},
+		},
+	}
+	res = fs.IsSameResource(other)
+	assert.True(t, res)
+	fs.HTTPConfig.EqualityCheckMode = 1
+	res = fs.IsSameResource(other)
+	assert.False(t, res)
+	fs = vfs.Filesystem{
+		Provider: sdk.IRODSFilesystemProvider,
+		IRODSConfig: vfs.IRODSFsConfig{
+			BaseIRODSFsConfig: sdk.BaseIRODSFsConfig{
+				Endpoint: "127.0.0.1:1247",
+				Username: "a",
+			},
+		},
+	}
+	other = vfs.Filesystem{
+		Provider: sdk.IRODSFilesystemProvider,
+		IRODSConfig: vfs.IRODSFsConfig{
+			BaseIRODSFsConfig: sdk.BaseIRODSFsConfig{
+				Endpoint: "127.0.0.1:1247",
 				Username: "b",
 			},
 		},

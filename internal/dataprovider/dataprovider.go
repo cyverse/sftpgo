@@ -2699,7 +2699,7 @@ func buildUserHomeDir(user *User) {
 			return
 		}
 		switch user.FsConfig.Provider {
-		case sdk.SFTPFilesystemProvider, sdk.S3FilesystemProvider, sdk.AzureBlobFilesystemProvider, sdk.GCSFilesystemProvider, sdk.HTTPFilesystemProvider:
+		case sdk.SFTPFilesystemProvider, sdk.S3FilesystemProvider, sdk.AzureBlobFilesystemProvider, sdk.GCSFilesystemProvider, sdk.HTTPFilesystemProvider, sdk.IRODSFilesystemProvider:
 			if tempPath != "" {
 				user.HomeDir = filepath.Join(tempPath, user.Username)
 			} else {

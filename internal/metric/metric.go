@@ -637,6 +637,42 @@ var (
 		Name: "sftpgo_httpfs_download_size",
 		Help: "The total HTTPFs download size as bytes, partial downloads are included",
 	})
+
+	// totalIRODSFsUploads is the metric that reports the total number of successful IRODSFs uploads
+	totalIRODSFsUploads = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sftpgo_irodsfs_uploads_total",
+		Help: "The total number of successful IRODSFs uploads",
+	})
+
+	// totalIRODSFsDownloads is the metric that reports the total number of successful IRODSFs downloads
+	totalIRODSFsDownloads = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sftpgo_irodsfs_downloads_total",
+		Help: "The total number of successful IRODSFs downloads",
+	})
+
+	// totalIRODSFsUploadErrors is the metric that reports the total number of IRODSFs upload errors
+	totalIRODSFsUploadErrors = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sftpgo_irodsfs_upload_errors_total",
+		Help: "The total number of IRODSFs upload errors",
+	})
+
+	// totalIRODSFsDownloadErrors is the metric that reports the total number of IRODSFs download errors
+	totalIRODSFsDownloadErrors = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sftpgo_irodsfs_download_errors_total",
+		Help: "The total number of IRODSFs download errors",
+	})
+
+	// totalIRODSFsUploadSize is the metric that reports the total IRODSFs uploads size as bytes
+	totalIRODSFsUploadSize = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sftpgo_irodsfs_upload_size",
+		Help: "The total IRODSFs upload size as bytes, partial uploads are included",
+	})
+
+	// totalIRODSFsDownloadSize is the metric that reports the total IRODSFs downloads size as bytes
+	totalIRODSFsDownloadSize = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "sftpgo_irodsfs_download_size",
+		Help: "The total IRODSFs download size as bytes, partial downloads are included",
+	})
 )
 
 // AddMetricsEndpoint publishes metrics to the specified endpoint
@@ -886,6 +922,27 @@ func HTTPFsTransferCompleted(bytes int64, transferKind int, err error) {
 			totalHTTPFsDownloadErrors.Inc()
 		}
 		totalHTTPFsDownloadSize.Add(float64(bytes))
+	}
+}
+
+// IRODSFsTransferCompleted updates metrics after an IRODSFs upload or a download
+func IRODSFsTransferCompleted(bytes int64, transferKind int, err error) {
+	if transferKind == 0 {
+		// upload
+		if err == nil {
+			totalIRODSFsUploads.Inc()
+		} else {
+			totalIRODSFsUploadErrors.Inc()
+		}
+		totalIRODSFsUploadSize.Add(float64(bytes))
+	} else {
+		// download
+		if err == nil {
+			totalIRODSFsDownloads.Inc()
+		} else {
+			totalIRODSFsDownloadErrors.Inc()
+		}
+		totalIRODSFsDownloadSize.Add(float64(bytes))
 	}
 }
 

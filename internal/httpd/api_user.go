@@ -305,7 +305,12 @@ func updateEncryptedSecrets(fsConfig *vfs.Filesystem, currentFsConfig *vfs.Files
 		updateSFTPFsEncryptedSecrets(fsConfig, currentFsConfig)
 	case sdk.HTTPFilesystemProvider:
 		updateHTTPFsEncryptedSecrets(fsConfig, currentFsConfig)
+	case sdk.IRODSFilesystemProvider:
+		if fsConfig.IRODSConfig.Password.IsNotPlainAndNotEmpty() {
+			fsConfig.IRODSConfig.Password = currentFsConfig.IRODSConfig.Password
+		}
 	}
+
 }
 
 func updateSFTPFsEncryptedSecrets(fsConfig *vfs.Filesystem, currentFsConfig *vfs.Filesystem) {

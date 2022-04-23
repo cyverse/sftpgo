@@ -89,6 +89,8 @@ func (v *BaseVirtualFolder) hideConfidentialData() {
 		v.FsConfig.SFTPConfig.HideConfidentialData()
 	case sdk.HTTPFilesystemProvider:
 		v.FsConfig.HTTPConfig.HideConfidentialData()
+	case sdk.IRODSFilesystemProvider:
+		v.FsConfig.IRODSConfig.HideConfidentialData()
 	}
 }
 
@@ -159,6 +161,8 @@ func (v *VirtualFolder) GetFilesystem(connectionID string, forbiddenSelfUsers []
 		return NewSFTPFs(connectionID, v.VirtualPath, v.MappedPath, forbiddenSelfUsers, v.FsConfig.SFTPConfig)
 	case sdk.HTTPFilesystemProvider:
 		return NewHTTPFs(connectionID, v.MappedPath, v.VirtualPath, v.FsConfig.HTTPConfig)
+	case sdk.IRODSFilesystemProvider:
+		return NewIRODSFs(connectionID, v.MappedPath, v.VirtualPath, v.FsConfig.IRODSConfig)
 	default:
 		return NewOsFs(connectionID, v.MappedPath, v.VirtualPath, &v.FsConfig.OSConfig), nil
 	}

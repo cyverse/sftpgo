@@ -178,6 +178,8 @@ func (u *User) getRootFs(connectionID string) (fs vfs.Fs, err error) {
 		return vfs.NewSFTPFs(connectionID, "", u.GetHomeDir(), forbiddenSelfUsers, u.FsConfig.SFTPConfig)
 	case sdk.HTTPFilesystemProvider:
 		return vfs.NewHTTPFs(connectionID, u.GetHomeDir(), "", u.FsConfig.HTTPConfig)
+	case sdk.IRODSFilesystemProvider:
+		return vfs.NewIRODSFs(connectionID, u.GetHomeDir(), "", u.FsConfig.IRODSConfig)
 	default:
 		return vfs.NewOsFs(connectionID, u.GetHomeDir(), "", &u.FsConfig.OSConfig), nil
 	}
@@ -1571,6 +1573,8 @@ func (u *User) replaceFsConfigPlaceholders(fsConfig vfs.Filesystem, replacer *st
 		fsConfig.SFTPConfig.Prefix = u.replacePlaceholder(fsConfig.SFTPConfig.Prefix, replacer)
 	case sdk.HTTPFilesystemProvider:
 		fsConfig.HTTPConfig.Username = u.replacePlaceholder(fsConfig.HTTPConfig.Username, replacer)
+	case sdk.IRODSFilesystemProvider:
+		fsConfig.IRODSConfig.Username = u.replacePlaceholder(fsConfig.IRODSConfig.Username, replacer)
 	}
 	return fsConfig
 }
