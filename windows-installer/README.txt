@@ -1,6 +1,6 @@
 SFTPGo allows you to securely share your files over SFTP and optionally over HTTP/S, FTP/S and WebDAV as well.
 Several storage backends are supported: local filesystem, encrypted local filesystem, S3 (compatible) Object Storage,
-Google Cloud Storage, Azure Blob Storage, other SFTP servers.
+Google Cloud Storage, Azure Blob Storage, iRODS Storage, other SFTP servers.
 
 If this is your first installation please open the web administration panel:
 

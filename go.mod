@@ -19,6 +19,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.16.3
 	github.com/cockroachdb/cockroach-go/v2 v2.2.8
 	github.com/coreos/go-oidc/v3 v3.1.0
+	github.com/cyverse/go-irodsclient v0.9.0
 	github.com/eikenb/pipeat v0.0.0-20210730190139-06b3e6902001
 	github.com/fclairamb/ftpserverlib v0.17.1-0.20220317111420-26600d07c50e
 	github.com/fclairamb/go-log v0.2.0
@@ -129,6 +130,7 @@ require (
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/oklog/run v1.1.0 // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -138,6 +140,7 @@ require (
 	github.com/prometheus/common v0.33.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -163,6 +166,7 @@ require (
 
 replace (
 	github.com/jlaffaye/ftp => github.com/drakkan/ftp v0.0.0-20201114075148-9b9adce499a9
+	github.com/sftpgo/sdk => github.com/cyverse/sftpgo-sdk v0.1.1-0.20220427181007-fffd03f7e0ed
 	golang.org/x/crypto => github.com/drakkan/crypto v0.0.0-20220412172350-e76a61f8e7d2
 	golang.org/x/net => github.com/drakkan/net v0.0.0-20220412172245-b4d0d6443325
 )

@@ -83,6 +83,12 @@ var (
 	portableSFTPPrefix                 string
 	portableSFTPDisableConcurrentReads bool
 	portableSFTPDBufferSize            int64
+	portableIRODSEndpoint              string
+	portableIRODSCollectionPath        string
+	portableIRODSUsername              string
+	portableIRODSProxyUsername         string
+	portableIRODSResourceServer        string
+	portableIRODSPassword              string
 	portableCmd                        = &cobra.Command{
 		Use:   "portable",
 		Short: "Serve a single directory/account",
@@ -226,6 +232,16 @@ Please take a look at the usage below to customize the serving parameters`,
 							Password:   kms.NewPlainSecret(portableSFTPPassword),
 							PrivateKey: kms.NewPlainSecret(portableSFTPPrivateKey),
 						},
+						IRODSConfig: vfs.IRODSFsConfig{
+							BaseIRODSFsConfig: sdk.BaseIRODSFsConfig{
+								Endpoint:       portableIRODSEndpoint,
+								CollectionPath: portableIRODSCollectionPath,
+								Username:       portableIRODSUsername,
+								ProxyUsername:  portableIRODSProxyUsername,
+								ResourceServer: portableIRODSResourceServer,
+							},
+							Password: kms.NewPlainSecret(portableIRODSPassword),
+						},
 					},
 				},
 			}
@@ -296,7 +312,8 @@ s3fs => AWS S3 compatible (legacy: 1)
 gcsfs => Google Cloud Storage (legacy: 2)
 azblobfs => Azure Blob Storage (legacy: 3)
 cryptfs => Encrypted local filesystem (legacy: 4)
-sftpfs => SFTP (legacy: 5)`)
+sftpfs => SFTP (legacy: 5)
+irodsfs => iRODS Storage (legacy: 6)`)
 	portableCmd.Flags().StringVar(&portableS3Bucket, "s3-bucket", "", "")
 	portableCmd.Flags().StringVar(&portableS3Region, "s3-region", "", "")
 	portableCmd.Flags().StringVar(&portableS3AccessKey, "s3-access-key", "", "")
@@ -371,6 +388,12 @@ multiple concurrent requests and this
 allows data to be transferred at a
 faster rate, over high latency networks,
 by overlapping round-trip times`)
+	portableCmd.Flags().StringVar(&portableIRODSEndpoint, "irods-endpoint", "", `iRODS endpoint as host:port for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSCollectionPath, "irods-collection", "", `iRODS collection path for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSUsername, "irods-username", "", `iRODS user for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSProxyUsername, "irods-proxyusername", "", `iRODS proxy user for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSResourceServer, "irods-resource", "", `iRODS resource server for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSPassword, "irods-password", "", `iRODS password for iRODS provider`)
 	rootCmd.AddCommand(portableCmd)
 }
 

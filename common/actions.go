@@ -136,6 +136,8 @@ func newActionNotification(
 		}
 	case sdk.SFTPFilesystemProvider:
 		endpoint = fsConfig.SFTPConfig.Endpoint
+	case sdk.IRODSFilesystemProvider:
+		endpoint = fsConfig.IRODSConfig.Endpoint
 	}
 
 	if err == ErrQuotaExceeded {

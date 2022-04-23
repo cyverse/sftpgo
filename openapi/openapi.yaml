@@ -4296,6 +4296,7 @@ components:
         - 3
         - 4
         - 5
+        - 6
       description: |
         Filesystem providers:
           * `0` - Local filesystem
@@ -4304,6 +4305,7 @@ components:
           * `3` - Azure Blob Storage
           * `4` - Local filesystem encrypted
           * `5` - SFTP
+          * `6` - iRODS Storage
     LoginMethods:
       type: string
       enum:
@@ -4870,6 +4872,26 @@ components:
           maximum: 16
           example: 2
           description: The size of the buffer (in MB) to use for transfers. By enabling buffering, the reads and writes, from/to the remote SFTP server, are split in multiple concurrent requests and this allows data to be transferred at a faster rate, over high latency networks, by overlapping round-trip times. With buffering enabled, resuming uploads is not supported and a file cannot be opened for both reading and writing at the same time. 0 means disabled.
+    IRODSFsConfig:
+      type: object
+      properties:
+        endpoint:
+          type: string
+          description: 'remote iRODS endpoint as host:port'
+        username:
+          type: string
+          description: 'iRODS username'
+        proxy_username:
+          type: string
+          description: 'iRODS proxy username'
+        password:
+          $ref: '#/components/schemas/Secret'
+        collection_path:
+          type: string
+          description: 'iRODS Collection Path to access'
+        resource:
+          type: string
+          description: 'iRODS Resource Sever (default "")'
     FilesystemConfig:
       type: object
       properties:
@@ -4885,6 +4907,8 @@ components:
           $ref: '#/components/schemas/CryptFsConfig'
         sftpconfig:
           $ref: '#/components/schemas/SFTPFsConfig'
+        irodsconfig:
+          $ref: '#/components/schemas/IRODSFsConfig'
       description: Storage filesystem details
     BaseVirtualFolder:
       type: object

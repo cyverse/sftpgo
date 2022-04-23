@@ -59,7 +59,8 @@ Flags:
                                         gcsfs => Google Cloud Storage (legacy: 2)
                                         azblobfs => Azure Blob Storage (legacy: 3)
                                         cryptfs => Encrypted local filesystem (legacy: 4)
-                                        sftpfs => SFTP (legacy: 5) (default "osfs")
+                                        sftpfs => SFTP (legacy: 5)
+                                        irodsfs => iRODS Storage (legacy: 6) (default "osfs")
       --ftpd-cert string                Path to the certificate file for FTPS
       --ftpd-key string                 Path to the key file for FTPS
       --ftpd-port int                   0 means a random unprivileged port,
@@ -120,6 +121,13 @@ Flags:
                                         operations to a given path within the
                                         remote SFTP server
       --sftp-username string            SFTP user for SFTP provider
+      --irods-endpoint string           iRODS endpoint as host:port for iRODS
+                                        provider
+      --irods-collection string         iRODS collection path for iRODS provider
+      --irods-username string           iRODS user for iRODS provider
+      --irods-proxyusername string      iRODS proxy user for iRODS provider (default "")
+      --irods-resource string           iRODS resource server for iRODS provider (default "")
+      --irods-password string           iRODS password for iRODS provider
   -s, --sftpd-port int                  0 means a random unprivileged port,
                                         < 0 disabled
   -c, --ssh-commands strings            SSH commands to enable.

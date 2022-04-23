@@ -91,6 +91,8 @@ func (v *BaseVirtualFolder) GetStorageDescrition() string {
 		return fmt.Sprintf("Encrypted: %v", v.MappedPath)
 	case sdk.SFTPFilesystemProvider:
 		return fmt.Sprintf("SFTP: %v", v.FsConfig.SFTPConfig.Endpoint)
+	case sdk.IRODSFilesystemProvider:
+		return fmt.Sprintf("iRODS: %v", v.FsConfig.IRODSConfig.Endpoint)
 	default:
 		return ""
 	}
@@ -114,6 +116,8 @@ func (v *BaseVirtualFolder) hideConfidentialData() {
 		v.FsConfig.CryptConfig.HideConfidentialData()
 	case sdk.SFTPFilesystemProvider:
 		v.FsConfig.SFTPConfig.HideConfidentialData()
+	case sdk.IRODSFilesystemProvider:
+		v.FsConfig.IRODSConfig.HideConfidentialData()
 	}
 }
 
@@ -154,6 +158,10 @@ func (v *BaseVirtualFolder) HasRedactedSecret() bool {
 		if v.FsConfig.SFTPConfig.PrivateKey.IsRedacted() {
 			return true
 		}
+	case sdk.IRODSFilesystemProvider:
+		if v.FsConfig.IRODSConfig.Password.IsRedacted() {
+			return true
+		}
 	}
 	return false
 }
@@ -188,6 +196,8 @@ func (v *VirtualFolder) GetFilesystem(connectionID string, forbiddenSelfUsers []
 		return NewCryptFs(connectionID, v.MappedPath, v.VirtualPath, v.FsConfig.CryptConfig)
 	case sdk.SFTPFilesystemProvider:
 		return NewSFTPFs(connectionID, v.VirtualPath, v.MappedPath, forbiddenSelfUsers, v.FsConfig.SFTPConfig)
+	case sdk.IRODSFilesystemProvider:
+		return NewIRODSFs(connectionID, v.MappedPath, v.VirtualPath, v.FsConfig.IRODSConfig)
 	default:
 		return NewOsFs(connectionID, v.MappedPath, v.VirtualPath), nil
 	}

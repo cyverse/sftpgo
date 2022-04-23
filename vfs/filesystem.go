@@ -25,6 +25,7 @@ type Filesystem struct {
 	AzBlobConfig   AzBlobFsConfig         `json:"azblobconfig,omitempty"`
 	CryptConfig    CryptFsConfig          `json:"cryptconfig,omitempty"`
 	SFTPConfig     SFTPFsConfig           `json:"sftpconfig,omitempty"`
+	IRODSConfig    IRODSFsConfig          `json:"irodsconfig,omitempty"`
 }
 
 // SetEmptySecrets sets the secrets to empty
@@ -36,6 +37,7 @@ func (f *Filesystem) SetEmptySecrets() {
 	f.CryptConfig.Passphrase = kms.NewEmptySecret()
 	f.SFTPConfig.Password = kms.NewEmptySecret()
 	f.SFTPConfig.PrivateKey = kms.NewEmptySecret()
+	f.IRODSConfig.Password = kms.NewEmptySecret()
 }
 
 // SetEmptySecretsIfNil sets the secrets to empty if nil
@@ -60,6 +62,9 @@ func (f *Filesystem) SetEmptySecretsIfNil() {
 	}
 	if f.SFTPConfig.PrivateKey == nil {
 		f.SFTPConfig.PrivateKey = kms.NewEmptySecret()
+	}
+	if f.IRODSConfig.Password == nil {
+		f.IRODSConfig.Password = kms.NewEmptySecret()
 	}
 }
 
@@ -88,6 +93,9 @@ func (f *Filesystem) SetNilSecretsIfEmpty() {
 	if f.SFTPConfig.PrivateKey != nil && f.SFTPConfig.PrivateKey.IsEmpty() {
 		f.SFTPConfig.PrivateKey = nil
 	}
+	if f.IRODSConfig.Password != nil && f.IRODSConfig.Password.IsEmpty() {
+		f.IRODSConfig.Password = nil
+	}
 }
 
 // IsEqual returns true if the fs is equal to other
@@ -106,6 +114,8 @@ func (f *Filesystem) IsEqual(other *Filesystem) bool {
 		return f.CryptConfig.isEqual(&other.CryptConfig)
 	case sdk.SFTPFilesystemProvider:
 		return f.SFTPConfig.isEqual(&other.SFTPConfig)
+	case sdk.IRODSFilesystemProvider:
+		return f.IRODSConfig.isEqual(&other.IRODSConfig)
 	default:
 		return true
 	}
@@ -126,6 +136,7 @@ func (f *Filesystem) Validate(helper ValidatorHelper) error {
 		f.AzBlobConfig = AzBlobFsConfig{}
 		f.CryptConfig = CryptFsConfig{}
 		f.SFTPConfig = SFTPFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
 		return nil
 	case sdk.GCSFilesystemProvider:
 		if err := f.GCSConfig.Validate(helper.GetGCSCredentialsFilePath()); err != nil {
@@ -135,6 +146,7 @@ func (f *Filesystem) Validate(helper ValidatorHelper) error {
 		f.AzBlobConfig = AzBlobFsConfig{}
 		f.CryptConfig = CryptFsConfig{}
 		f.SFTPConfig = SFTPFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
 		return nil
 	case sdk.AzureBlobFilesystemProvider:
 		if err := f.AzBlobConfig.Validate(); err != nil {
@@ -147,6 +159,7 @@ func (f *Filesystem) Validate(helper ValidatorHelper) error {
 		f.GCSConfig = GCSFsConfig{}
 		f.CryptConfig = CryptFsConfig{}
 		f.SFTPConfig = SFTPFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
 		return nil
 	case sdk.CryptedFilesystemProvider:
 		if err := f.CryptConfig.Validate(); err != nil {
@@ -159,6 +172,7 @@ func (f *Filesystem) Validate(helper ValidatorHelper) error {
 		f.GCSConfig = GCSFsConfig{}
 		f.AzBlobConfig = AzBlobFsConfig{}
 		f.SFTPConfig = SFTPFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
 		return nil
 	case sdk.SFTPFilesystemProvider:
 		if err := f.SFTPConfig.Validate(); err != nil {
@@ -171,6 +185,20 @@ func (f *Filesystem) Validate(helper ValidatorHelper) error {
 		f.GCSConfig = GCSFsConfig{}
 		f.AzBlobConfig = AzBlobFsConfig{}
 		f.CryptConfig = CryptFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
+		return nil
+	case sdk.IRODSFilesystemProvider:
+		if err := f.IRODSConfig.Validate(); err != nil {
+			return util.NewValidationError(fmt.Sprintf("could not validate iRODS fs config: %v", err))
+		}
+		if err := f.IRODSConfig.EncryptCredentials(helper.GetEncryptionAdditionalData()); err != nil {
+			return util.NewValidationError(fmt.Sprintf("could not encrypt iRODS fs credentials: %v", err))
+		}
+		f.S3Config = S3FsConfig{}
+		f.GCSConfig = GCSFsConfig{}
+		f.AzBlobConfig = AzBlobFsConfig{}
+		f.CryptConfig = CryptFsConfig{}
+		f.SFTPConfig = SFTPFsConfig{}
 		return nil
 	default:
 		f.Provider = sdk.LocalFilesystemProvider
@@ -179,6 +207,7 @@ func (f *Filesystem) Validate(helper ValidatorHelper) error {
 		f.AzBlobConfig = AzBlobFsConfig{}
 		f.CryptConfig = CryptFsConfig{}
 		f.SFTPConfig = SFTPFsConfig{}
+		f.IRODSConfig = IRODSFsConfig{}
 		return nil
 	}
 }
@@ -213,6 +242,10 @@ func (f *Filesystem) HasRedactedSecret() bool {
 		if f.SFTPConfig.PrivateKey.IsRedacted() {
 			return true
 		}
+	case sdk.IRODSFilesystemProvider:
+		if f.IRODSConfig.Password.IsRedacted() {
+			return true
+		}
 	}
 
 	return false
@@ -231,6 +264,8 @@ func (f *Filesystem) HideConfidentialData() {
 		f.CryptConfig.HideConfidentialData()
 	case sdk.SFTPFilesystemProvider:
 		f.SFTPConfig.HideConfidentialData()
+	case sdk.IRODSFilesystemProvider:
+		f.IRODSConfig.HideConfidentialData()
 	}
 }
 
@@ -299,6 +334,16 @@ func (f *Filesystem) GetACopy() Filesystem {
 			},
 			Password:   f.SFTPConfig.Password.Clone(),
 			PrivateKey: f.SFTPConfig.PrivateKey.Clone(),
+		},
+		IRODSConfig: IRODSFsConfig{
+			BaseIRODSFsConfig: sdk.BaseIRODSFsConfig{
+				Endpoint:       f.IRODSConfig.Endpoint,
+				CollectionPath: f.IRODSConfig.CollectionPath,
+				Username:       f.IRODSConfig.Username,
+				ProxyUsername:  f.IRODSConfig.ProxyUsername,
+				ResourceServer: f.IRODSConfig.ResourceServer,
+			},
+			Password: f.IRODSConfig.Password.Clone(),
 		},
 	}
 	if len(f.SFTPConfig.Fingerprints) > 0 {

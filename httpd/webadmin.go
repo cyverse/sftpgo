@@ -326,7 +326,7 @@ func loadAdminTemplates(templatesPath string) {
 		"ListFSProviders": func() []sdk.FilesystemProvider {
 			return []sdk.FilesystemProvider{sdk.LocalFilesystemProvider, sdk.CryptedFilesystemProvider,
 				sdk.S3FilesystemProvider, sdk.GCSFilesystemProvider,
-				sdk.AzureBlobFilesystemProvider, sdk.SFTPFilesystemProvider,
+				sdk.AzureBlobFilesystemProvider, sdk.SFTPFilesystemProvider, sdk.IRODSFilesystemProvider,
 			}
 		},
 	})
@@ -1089,6 +1089,18 @@ func getAzureConfig(r *http.Request) (vfs.AzBlobFsConfig, error) {
 	return config, err
 }
 
+func getIRODSConfig(r *http.Request) (vfs.IRODSFsConfig, error) {
+	var err error
+	config := vfs.IRODSFsConfig{}
+	config.Endpoint = r.Form.Get("irods_endpoint")
+	config.Username = r.Form.Get("irods_username")
+	config.ProxyUsername = r.Form.Get("irods_proxyusername")
+	config.CollectionPath = r.Form.Get("irods_collection")
+	config.ResourceServer = r.Form.Get("irods_resource")
+	config.Password = getSecretFromFormField(r, "irods_password")
+	return config, err
+}
+
 func getFsConfigFromPostFields(r *http.Request) (vfs.Filesystem, error) {
 	var fs vfs.Filesystem
 	fs.Provider = sdk.GetProviderByName(r.Form.Get("fs_provider"))
@@ -1119,6 +1131,12 @@ func getFsConfigFromPostFields(r *http.Request) (vfs.Filesystem, error) {
 			return fs, err
 		}
 		fs.SFTPConfig = config
+	case sdk.IRODSFilesystemProvider:
+		config, err := getIRODSConfig(r)
+		if err != nil {
+			return fs, err
+		}
+		fs.IRODSConfig = config
 	}
 	return fs, nil
 }
@@ -1170,6 +1188,8 @@ func getFolderFromTemplate(folder vfs.BaseVirtualFolder, name string) vfs.BaseVi
 		folder.FsConfig.AzBlobConfig = getAzBlobFsFromTemplate(folder.FsConfig.AzBlobConfig, replacements)
 	case sdk.SFTPFilesystemProvider:
 		folder.FsConfig.SFTPConfig = getSFTPFsFromTemplate(folder.FsConfig.SFTPConfig, replacements)
+	case sdk.IRODSFilesystemProvider:
+		folder.FsConfig.IRODSConfig = getIRODSFsFromTemplate(folder.FsConfig.IRODSConfig, replacements)
 	}
 
 	return folder
@@ -1220,6 +1240,15 @@ func getSFTPFsFromTemplate(fsConfig vfs.SFTPFsConfig, replacements map[string]st
 	return fsConfig
 }
 
+func getIRODSFsFromTemplate(fsConfig vfs.IRODSFsConfig, replacements map[string]string) vfs.IRODSFsConfig {
+	fsConfig.Username = replacePlaceholders(fsConfig.Username, replacements)
+	if fsConfig.Password != nil && fsConfig.Password.IsPlain() {
+		payload := replacePlaceholders(fsConfig.Password.GetPayload(), replacements)
+		fsConfig.Password = kms.NewPlainSecret(payload)
+	}
+	return fsConfig
+}
+
 func getUserFromTemplate(user dataprovider.User, template userTemplateFields) dataprovider.User {
 	user.Username = template.Username
 	user.Password = template.Password
@@ -1253,6 +1282,8 @@ func getUserFromTemplate(user dataprovider.User, template userTemplateFields) da
 		user.FsConfig.AzBlobConfig = getAzBlobFsFromTemplate(user.FsConfig.AzBlobConfig, replacements)
 	case sdk.SFTPFilesystemProvider:
 		user.FsConfig.SFTPConfig = getSFTPFsFromTemplate(user.FsConfig.SFTPConfig, replacements)
+	case sdk.IRODSFilesystemProvider:
+		user.FsConfig.IRODSConfig = getIRODSFsFromTemplate(user.FsConfig.IRODSConfig, replacements)
 	}
 
 	return user
@@ -1970,7 +2001,7 @@ func (s *httpdServer) handleWebUpdateUserPost(w http.ResponseWriter, r *http.Req
 	}
 	updateEncryptedSecrets(&updatedUser.FsConfig, user.FsConfig.S3Config.AccessSecret, user.FsConfig.AzBlobConfig.AccountKey,
 		user.FsConfig.AzBlobConfig.SASURL, user.FsConfig.GCSConfig.Credentials, user.FsConfig.CryptConfig.Passphrase,
-		user.FsConfig.SFTPConfig.Password, user.FsConfig.SFTPConfig.PrivateKey)
+		user.FsConfig.SFTPConfig.Password, user.FsConfig.SFTPConfig.PrivateKey, user.FsConfig.IRODSConfig.Password)
 
 	updatedUser = getUserFromTemplate(updatedUser, userTemplateFields{
 		Username:   updatedUser.Username,
@@ -2104,7 +2135,7 @@ func (s *httpdServer) handleWebUpdateFolderPost(w http.ResponseWriter, r *http.R
 	updatedFolder.FsConfig.SetEmptySecretsIfNil()
 	updateEncryptedSecrets(&updatedFolder.FsConfig, folder.FsConfig.S3Config.AccessSecret, folder.FsConfig.AzBlobConfig.AccountKey,
 		folder.FsConfig.AzBlobConfig.SASURL, folder.FsConfig.GCSConfig.Credentials, folder.FsConfig.CryptConfig.Passphrase,
-		folder.FsConfig.SFTPConfig.Password, folder.FsConfig.SFTPConfig.PrivateKey)
+		folder.FsConfig.SFTPConfig.Password, folder.FsConfig.SFTPConfig.PrivateKey, folder.FsConfig.IRODSConfig.Password)
 
 	updatedFolder = getFolderFromTemplate(updatedFolder, updatedFolder.Name)
 

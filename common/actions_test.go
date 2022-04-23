@@ -49,6 +49,11 @@ func TestNewActionNotification(t *testing.T) {
 			Endpoint: "sftpendpoint",
 		},
 	}
+	user.FsConfig.IRODSConfig = vfs.IRODSFsConfig{
+		BaseIRODSFsConfig: sdk.BaseIRODSFsConfig{
+			Endpoint: "irodsendpoint",
+		},
+	}
 	sessionID := xid.New().String()
 	a := newActionNotification(user, operationDownload, "path", "vpath", "target", "", "", ProtocolSFTP, "", sessionID,
 		123, 0, errors.New("fake error"))
@@ -89,6 +94,11 @@ func TestNewActionNotification(t *testing.T) {
 	a = newActionNotification(user, operationDownload, "path", "vpath", "target", "", "", ProtocolSFTP, "", sessionID,
 		123, 0, nil)
 	assert.Equal(t, "sftpendpoint", a.Endpoint)
+
+	user.FsConfig.Provider = sdk.IRODSFilesystemProvider
+	a = newActionNotification(user, operationDownload, "path", "vpath", "target", "", "", ProtocolSFTP, "", sessionID,
+		123, 0, nil)
+	assert.Equal(t, "irodsendpoint", a.Endpoint)
 }
 
 func TestActionHTTP(t *testing.T) {

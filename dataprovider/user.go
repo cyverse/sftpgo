@@ -151,6 +151,8 @@ func (u *User) getRootFs(connectionID string) (fs vfs.Fs, err error) {
 		}
 		forbiddenSelfUsers = append(forbiddenSelfUsers, u.Username)
 		return vfs.NewSFTPFs(connectionID, "", u.GetHomeDir(), forbiddenSelfUsers, u.FsConfig.SFTPConfig)
+	case sdk.IRODSFilesystemProvider:
+		return vfs.NewIRODSFs(connectionID, u.GetHomeDir(), "", u.FsConfig.IRODSConfig)
 	default:
 		return vfs.NewOsFs(connectionID, u.GetHomeDir(), ""), nil
 	}

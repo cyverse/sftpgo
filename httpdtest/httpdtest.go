@@ -1262,7 +1262,10 @@ func compareFsConfig(expected *vfs.Filesystem, actual *vfs.Filesystem) error {
 	if err := checkEncryptedSecret(expected.CryptConfig.Passphrase, actual.CryptConfig.Passphrase); err != nil {
 		return err
 	}
-	return compareSFTPFsConfig(expected, actual)
+	if err := compareSFTPFsConfig(expected, actual); err != nil {
+		return err
+	}
+	return compareIRODSFsConfig(expected, actual)
 }
 
 func compareS3Config(expected *vfs.Filesystem, actual *vfs.Filesystem) error { //nolint:gocyclo
@@ -1410,6 +1413,28 @@ func compareAzBlobConfig(expected *vfs.Filesystem, actual *vfs.Filesystem) error
 	}
 	if expected.AzBlobConfig.AccessTier != actual.AzBlobConfig.AccessTier {
 		return errors.New("azure Blob access tier mismatch")
+	}
+	return nil
+}
+
+func compareIRODSFsConfig(expected *vfs.Filesystem, actual *vfs.Filesystem) error {
+	if expected.IRODSConfig.Endpoint != actual.IRODSConfig.Endpoint {
+		return errors.New("IRODSFs endpoint mismatch")
+	}
+	if expected.IRODSConfig.CollectionPath != actual.IRODSConfig.CollectionPath {
+		return errors.New("IRODSFs collection path mismatch")
+	}
+	if expected.IRODSConfig.Username != actual.IRODSConfig.Username {
+		return errors.New("IRODSFs username mismatch")
+	}
+	if expected.IRODSConfig.ProxyUsername != actual.IRODSConfig.ProxyUsername {
+		return errors.New("IRODSFs proxy username mismatch")
+	}
+	if expected.IRODSConfig.ResourceServer != actual.IRODSConfig.ResourceServer {
+		return errors.New("IRODSFs resource server mismatch")
+	}
+	if err := checkEncryptedSecret(expected.IRODSConfig.Password, actual.IRODSConfig.Password); err != nil {
+		return fmt.Errorf("IRODSFs password mismatch: %v", err)
 	}
 	return nil
 }
