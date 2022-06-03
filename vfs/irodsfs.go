@@ -273,7 +273,7 @@ func (fs *IRODSFs) Create(name string, flag int) (File, *PipeWriter, func(), err
 	if fs.irodsClient.ExistsFile(name) {
 		// open
 		fsLog(fs, logger.LevelDebug, "opening a file %s", name)
-		irodsFileHandle, err = fs.irodsClient.OpenFile(name, "", string(irodstypes.FileOpenModeWriteOnly))
+		irodsFileHandle, err = fs.irodsClient.OpenFile(name, "", string(irodstypes.FileOpenModeWriteTruncate))
 	} else {
 		// create
 		fsLog(fs, logger.LevelDebug, "creating a file %s", name)
@@ -293,18 +293,14 @@ func (fs *IRODSFs) Create(name string, flag int) (File, *PipeWriter, func(), err
 		if err == nil && errFlush != nil {
 			err = errFlush
 		}
-		var errTruncate error
-		if err != nil {
-			errTruncate = irodsFileHandle.Truncate(n)
-		}
 		errClose := irodsFileHandle.Close()
 		if err == nil && errClose != nil {
 			err = errClose
 		}
 		r.CloseWithError(err) //nolint:errcheck
 		p.Done(err)
-		fsLog(fs, logger.LevelDebug, "upload completed, path: %#v, readed bytes: %v, err: %v, err truncate: %v",
-			name, n, err, errTruncate)
+		fsLog(fs, logger.LevelDebug, "upload completed, path: %#v, readed bytes: %v, err: %v",
+			name, n, err)
 	}()
 
 	return nil, p, nil, nil
