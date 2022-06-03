@@ -29,6 +29,8 @@ import (
 
 const (
 	defaultIRODSPort int = 1247
+	irodsReadSize    int = 128 * 1024      // 128KB
+	irodsWriteSize   int = 8 * 1024 * 1024 // 8MB
 )
 
 // IRODSFsConfig defines the configuration for iRODS Storage
@@ -250,7 +252,7 @@ func (fs *IRODSFs) Open(name string, offset int64) (File, *pipeat.PipeReaderAt, 
 	}
 
 	go func() {
-		n, err := io.Copy(w, irodsFileHandle)
+		n, err := fs.copy(w, irodsFileHandle, irodsReadSize)
 		w.CloseWithError(err) //nolint:errcheck
 		irodsFileHandle.Close()
 		fsLog(fs, logger.LevelDebug, "download completed, path: %#v size: %v, err: %v", name, n, err)
@@ -283,10 +285,10 @@ func (fs *IRODSFs) Create(name string, flag int) (File, *PipeWriter, func(), err
 	}
 
 	go func() {
-		bw := bufio.NewWriterSize(irodsFileHandle, 8*1024*1024)
+		bw := bufio.NewWriterSize(irodsFileHandle, irodsWriteSize)
 		// we don't use io.Copy since bufio.Writer implements io.WriterTo and
 		// so it calls the sftp.File WriteTo method without buffering
-		n, err := fs.copy(bw, r)
+		n, err := fs.copy(bw, r, irodsReadSize)
 		errFlush := bw.Flush()
 		if err == nil && errFlush != nil {
 			err = errFlush
@@ -654,8 +656,8 @@ func (fs *IRODSFs) makeFileInfoFromEntry(entry *irodsfs.Entry) *FileInfo {
 }
 
 // copy copies data from src to dst
-func (fs *IRODSFs) copy(dst io.Writer, src io.Reader) (written int64, err error) {
-	buf := make([]byte, 32768)
+func (fs *IRODSFs) copy(dst io.Writer, src io.Reader, buffersize int) (written int64, err error) {
+	buf := make([]byte, buffersize)
 	for {
 		nr, er := src.Read(buf)
 		if nr > 0 {
