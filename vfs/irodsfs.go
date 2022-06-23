@@ -215,6 +215,12 @@ func (fs *IRODSFs) ConnectionID() string {
 
 // Stat returns a FileInfo describing the named file
 func (fs *IRODSFs) Stat(name string) (os.FileInfo, error) {
+	err := fs.ensureIRODSPath(name)
+	if err != nil {
+		fsLog(fs, logger.LevelError, "failed to stat a file %s", name)
+		return nil, err
+	}
+
 	entry, err := fs.irodsClient.Stat(name)
 	if err != nil {
 		return nil, err
@@ -231,6 +237,12 @@ func (fs *IRODSFs) Lstat(name string) (os.FileInfo, error) {
 
 // Open opens the named file for reading
 func (fs *IRODSFs) Open(name string, offset int64) (File, *pipeat.PipeReaderAt, func(), error) {
+	err := fs.ensureIRODSPath(name)
+	if err != nil {
+		fsLog(fs, logger.LevelError, "failed to open a file %s", name)
+		return nil, nil, nil, err
+	}
+
 	r, w, err := pipeat.PipeInDir(fs.localTempDir)
 	if err != nil {
 		return nil, nil, nil, err
@@ -263,6 +275,12 @@ func (fs *IRODSFs) Open(name string, offset int64) (File, *pipeat.PipeReaderAt, 
 
 // Create creates or opens the named file for writing
 func (fs *IRODSFs) Create(name string, flag int) (File, *PipeWriter, func(), error) {
+	err := fs.ensureIRODSPath(name)
+	if err != nil {
+		fsLog(fs, logger.LevelError, "failed to create a file %s", name)
+		return nil, nil, nil, err
+	}
+
 	r, w, err := pipeat.PipeInDir(fs.localTempDir)
 	if err != nil {
 		return nil, nil, nil, err
@@ -312,6 +330,18 @@ func (fs *IRODSFs) Rename(source, target string) error {
 		return nil
 	}
 
+	err := fs.ensureIRODSPath(source)
+	if err != nil {
+		fsLog(fs, logger.LevelError, "failed to rename a file %s", source)
+		return err
+	}
+
+	err = fs.ensureIRODSPath(target)
+	if err != nil {
+		fsLog(fs, logger.LevelError, "failed to rename a file to %s", target)
+		return err
+	}
+
 	fsLog(fs, logger.LevelDebug, "renaming a file %s ==> %s", source, target)
 
 	entry, err := fs.irodsClient.Stat(source)
@@ -327,6 +357,12 @@ func (fs *IRODSFs) Rename(source, target string) error {
 
 // Remove removes the named file or (empty) directory.
 func (fs *IRODSFs) Remove(name string, isDir bool) error {
+	err := fs.ensureIRODSPath(name)
+	if err != nil {
+		fsLog(fs, logger.LevelError, "failed to remove a file/dir %s", name)
+		return err
+	}
+
 	if isDir {
 		fsLog(fs, logger.LevelDebug, "removing a dir %s", name)
 		err := fs.irodsClient.RemoveDir(name, false, true)
@@ -344,6 +380,12 @@ func (fs *IRODSFs) Remove(name string, isDir bool) error {
 
 // Mkdir creates a new directory with the specified name and default permissions
 func (fs *IRODSFs) Mkdir(name string) error {
+	err := fs.ensureIRODSPath(name)
+	if err != nil {
+		fsLog(fs, logger.LevelError, "failed to make a dir %s", name)
+		return err
+	}
+
 	if !fs.irodsClient.ExistsDir(name) {
 		fsLog(fs, logger.LevelDebug, "making a dir %s", name)
 		fs.irodsClient.MakeDir(name, false)
@@ -381,6 +423,12 @@ func (fs *IRODSFs) Chtimes(name string, atime, mtime time.Time, isUploading bool
 // Truncate by path is not supported, while truncating an opened
 // file is handled inside base transfer
 func (fs *IRODSFs) Truncate(name string, size int64) error {
+	err := fs.ensureIRODSPath(name)
+	if err != nil {
+		fsLog(fs, logger.LevelError, "failed to truncate a file %s", name)
+		return err
+	}
+
 	fsLog(fs, logger.LevelDebug, "truncating a file %s to %d", name, size)
 	return fs.irodsClient.TruncateFile(name, size)
 }
@@ -388,6 +436,12 @@ func (fs *IRODSFs) Truncate(name string, size int64) error {
 // ReadDir reads the directory named by dirname and returns
 // a list of directory entries.
 func (fs *IRODSFs) ReadDir(dirname string) ([]os.FileInfo, error) {
+	err := fs.ensureIRODSPath(dirname)
+	if err != nil {
+		fsLog(fs, logger.LevelError, "failed to readdir a dir %s", dirname)
+		return nil, err
+	}
+
 	var result []os.FileInfo
 
 	entries, err := fs.irodsClient.List(dirname)
@@ -468,6 +522,12 @@ func (fs *IRODSFs) CheckMetadata() error {
 // GetDirSize returns the number of files and the size for a folder
 // including any subfolders
 func (fs *IRODSFs) GetDirSize(dirname string) (int, int64, error) {
+	err := fs.ensureIRODSPath(dirname)
+	if err != nil {
+		fsLog(fs, logger.LevelError, "failed to get a dir size of %s", dirname)
+		return 0, 0, err
+	}
+
 	numFiles := 0
 	size := int64(0)
 
@@ -522,6 +582,12 @@ func (fs *IRODSFs) Walk(root string, walkFn filepath.WalkFunc) error {
 		dirName := pathStack[len(pathStack)-1]
 		pathStack = pathStack[0 : len(pathStack)-1]
 
+		err := fs.ensureIRODSPath(dirName)
+		if err != nil {
+			fsLog(fs, logger.LevelError, "failed to list a dir %s", dirName)
+			return err
+		}
+
 		entries, err := fs.irodsClient.List(dirName)
 		if err != nil {
 			return err
@@ -568,6 +634,12 @@ func (fs *IRODSFs) ResolvePath(virtualPath string) (string, error) {
 
 // GetMimeType returns the content type
 func (fs *IRODSFs) GetMimeType(name string) (string, error) {
+	err := fs.ensureIRODSPath(name)
+	if err != nil {
+		fsLog(fs, logger.LevelError, "failed to open a file %s", name)
+		return "", err
+	}
+
 	irodsFileHandle, err := fs.irodsClient.OpenFile(name, "", string(irodstypes.FileOpenModeReadOnly))
 	if err != nil {
 		return "", err
@@ -682,4 +754,16 @@ func (fs *IRODSFs) copy(dst io.Writer, src io.Reader, buffersize int) (written i
 		}
 	}
 	return written, err
+}
+
+func (fs *IRODSFs) ensureIRODSPath(path string) error {
+	if path == fs.config.CollectionPath {
+		// root
+		return nil
+	}
+
+	if !strings.HasPrefix(path, fs.config.CollectionPath+"/") {
+		return fmt.Errorf("path '%s' is out of the collection path '%s'", path, fs.config.CollectionPath)
+	}
+	return nil
 }
