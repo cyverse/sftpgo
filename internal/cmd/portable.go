@@ -102,6 +102,12 @@ var (
 	portableIRODSUsername              string
 	portableIRODSProxyUsername         string
 	portableIRODSResourceServer        string
+	portableIRODSAuthScheme            string
+	portableIRODSSSLCACertificatePath  string
+	portableIRODSSSLKeySize            int
+	portableIRODSSSLAlgorithm          string
+	portableIRODSSSLSaltSize           int
+	protableIRODSSSLHashRounds         int
 	portableIRODSPassword              string
 	portableCmd                        = &cobra.Command{
 		Use:   "portable",
@@ -263,11 +269,17 @@ Please take a look at the usage below to customize the serving parameters`,
 						},
 						IRODSConfig: vfs.IRODSFsConfig{
 							BaseIRODSFsConfig: sdk.BaseIRODSFsConfig{
-								Endpoint:       portableIRODSEndpoint,
-								CollectionPath: portableIRODSCollectionPath,
-								Username:       portableIRODSUsername,
-								ProxyUsername:  portableIRODSProxyUsername,
-								ResourceServer: portableIRODSResourceServer,
+								Endpoint:             portableIRODSEndpoint,
+								CollectionPath:       portableIRODSCollectionPath,
+								Username:             portableIRODSUsername,
+								ProxyUsername:        portableIRODSProxyUsername,
+								ResourceServer:       portableIRODSResourceServer,
+								AuthScheme:           portableIRODSAuthScheme,
+								SSLCACertificatePath: portableIRODSSSLCACertificatePath,
+								SSLKeySize:           portableIRODSSSLKeySize,
+								SSLAlgorithm:         portableIRODSSSLAlgorithm,
+								SSLSaltSize:          portableIRODSSSLSaltSize,
+								SSLHashRounds:        protableIRODSSSLHashRounds,
 							},
 							Password: kms.NewPlainSecret(portableIRODSPassword),
 						},
@@ -435,6 +447,12 @@ by overlapping round-trip times`)
 	portableCmd.Flags().StringVar(&portableIRODSUsername, "irods-username", "", `iRODS user for iRODS provider`)
 	portableCmd.Flags().StringVar(&portableIRODSProxyUsername, "irods-proxyusername", "", `iRODS proxy user for iRODS provider`)
 	portableCmd.Flags().StringVar(&portableIRODSResourceServer, "irods-resource", "", `iRODS resource server for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSAuthScheme, "irods-auth-scheme", "", `iRODS authentication scheme for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSSSLCACertificatePath, "irods-ssl-ca-cert", "", `iRODS SSL CA Certificate file path for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSSSLAlgorithm, "irods-ssl-algorithm", "", `iRODS SSL encryption algorithm for iRODS provider`)
+	portableCmd.Flags().IntVar(&portableIRODSSSLKeySize, "irods-ssl-key-size", 0, `iRODS SSL encryption key size for iRODS provider`)
+	portableCmd.Flags().IntVar(&portableIRODSSSLSaltSize, "irods-ssl-salt-size", 0, `iRODS SSL encryption salt size for iRODS provider`)
+	portableCmd.Flags().IntVar(&protableIRODSSSLHashRounds, "irods-ssl-hash-rounds", 0, `iRODS SSL encryption hash rounds for iRODS provider`)
 	portableCmd.Flags().StringVar(&portableIRODSPassword, "irods-password", "", `iRODS password for iRODS provider`)
 	rootCmd.AddCommand(portableCmd)
 }

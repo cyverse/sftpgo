@@ -69,6 +69,24 @@ func (c *IRODSFsConfig) isEqual(other *IRODSFsConfig) bool {
 	if c.ResourceServer != other.ResourceServer {
 		return false
 	}
+	if c.AuthScheme != other.AuthScheme {
+		return false
+	}
+	if c.SSLCACertificatePath != other.SSLCACertificatePath {
+		return false
+	}
+	if c.SSLKeySize != other.SSLKeySize {
+		return false
+	}
+	if c.SSLAlgorithm != other.SSLAlgorithm {
+		return false
+	}
+	if c.SSLSaltSize != other.SSLSaltSize {
+		return false
+	}
+	if c.SSLHashRounds != other.SSLHashRounds {
+		return false
+	}
 	c.setEmptyCredentialsIfNil()
 	other.setEmptyCredentialsIfNil()
 	return c.Password.IsEqual(other.Password)
@@ -104,6 +122,26 @@ func (c *IRODSFsConfig) validate() error {
 	}
 	if c.Username == "" {
 		return errors.New("username cannot be empty")
+	}
+	if strings.ToLower(c.AuthScheme) != "" && strings.ToLower(c.AuthScheme) != "native" && strings.ToLower(c.AuthScheme) != "pam" {
+		return errors.New("unknown authentication scheme")
+	}
+	if strings.ToLower(c.AuthScheme) == "pam" {
+		if c.SSLCACertificatePath == "" {
+			return errors.New("SSL CA certificate path cannot be empty when PAM authentication is used")
+		}
+		if c.SSLKeySize == 0 {
+			return errors.New("SSL encryption key size cannot be 0 when PAM authentication is used")
+		}
+		if c.SSLAlgorithm == "" {
+			return errors.New("SSL encryption algorithm cannot be 0 when PAM authentication is used")
+		}
+		if c.SSLSaltSize == 0 {
+			return errors.New("SSL encryption salt size cannot be 0 when PAM authentication is used")
+		}
+		if c.SSLHashRounds == 0 {
+			return errors.New("SSL encryption has rounds cannot be 0 when PAM authentication is used")
+		}
 	}
 	if err := c.validateCredentials(); err != nil {
 		return err
@@ -203,7 +241,7 @@ func NewIRODSFs(connectionID, localTempDir, mountPath string, irodsConfig IRODSF
 		config:       &irodsConfig,
 	}
 
-	fsLog(fs, logger.LevelDebug, "creating a new iRODS Fs connID: %s, localTempDir: %s, mountPath: %s\n    iRODS Host: %s, Collection Path: %s", fs.connectionID, fs.localTempDir, fs.mountPath, fs.config.Endpoint, fs.config.CollectionPath)
+	fsLog(fs, logger.LevelDebug, "creating a new iRODS Fs connID: %s, localTempDir: %s, mountPath: %s\n    iRODS Host: %s, Auth: %s, Collection Path: %s", fs.connectionID, fs.localTempDir, fs.mountPath, fs.config.Endpoint, fs.config.AuthScheme, fs.config.CollectionPath)
 
 	if err := fs.config.validate(); err != nil {
 		return fs, err
@@ -764,12 +802,31 @@ func (fs *IRODSFs) createConnection() error {
 		fs.config.ProxyUsername = fs.config.Username
 	}
 
-	irodsAccount, err := irodstypes.CreateIRODSProxyAccount(host, port, fs.config.Username, zone, fs.config.ProxyUsername, zone, irodstypes.AuthSchemeNative, fs.config.Password.GetPayload(), fs.config.ResourceServer)
-	if err != nil {
-		return err
+	var irodsAccount *irodstypes.IRODSAccount
+
+	switch strings.ToLower(fs.config.AuthScheme) {
+	case "", "native":
+		irodsAccount, err = irodstypes.CreateIRODSProxyAccount(host, port, fs.config.Username, zone, fs.config.ProxyUsername, zone, irodstypes.AuthSchemeNative, fs.config.Password.GetPayload(), fs.config.ResourceServer)
+		if err != nil {
+			return err
+		}
+	case "pam":
+		irodsAccount, err = irodstypes.CreateIRODSProxyAccount(host, port, fs.config.Username, zone, fs.config.ProxyUsername, zone, irodstypes.AuthSchemePAM, fs.config.Password.GetPayload(), fs.config.ResourceServer)
+		if err != nil {
+			return err
+		}
+
+		sslConf, err := irodstypes.CreateIRODSSSLConfig(fs.config.SSLCACertificatePath, fs.config.SSLKeySize, fs.config.SSLAlgorithm, fs.config.SSLSaltSize, fs.config.SSLHashRounds)
+		if err != nil {
+			return err
+		}
+
+		irodsAccount.SetSSLConfiguration(sslConf)
+	default:
+		return fmt.Errorf("unknown authentication scheme %s", fs.config.AuthScheme)
 	}
 
-	fsLog(fs, logger.LevelDebug, "connecting to iRODS %s:%d", irodsAccount.Host, irodsAccount.Port)
+	fsLog(fs, logger.LevelDebug, "connecting to iRODS %s:%d using %s auth", irodsAccount.Host, irodsAccount.Port, irodsAccount.AuthenticationScheme)
 
 	irodsClient, err := irodsfs.NewFileSystemWithDefault(irodsAccount, "sftpgo")
 	if err != nil {

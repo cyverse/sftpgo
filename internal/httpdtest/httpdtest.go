@@ -2013,6 +2013,24 @@ func compareIRODSFsConfig(expected *vfs.Filesystem, actual *vfs.Filesystem) erro
 	if expected.IRODSConfig.ResourceServer != actual.IRODSConfig.ResourceServer {
 		return errors.New("IRODSFs resource server mismatch")
 	}
+	if expected.IRODSConfig.AuthScheme != actual.IRODSConfig.AuthScheme {
+		return errors.New("IRODSFs auth scheme mismatch")
+	}
+	if expected.IRODSConfig.SSLCACertificatePath != actual.IRODSConfig.SSLCACertificatePath {
+		return errors.New("IRODSFs SSL CA certificate path scheme mismatch")
+	}
+	if expected.IRODSConfig.SSLKeySize != actual.IRODSConfig.SSLKeySize {
+		return errors.New("IRODSFs SSL encryption key size mismatch")
+	}
+	if expected.IRODSConfig.SSLAlgorithm != actual.IRODSConfig.SSLAlgorithm {
+		return errors.New("IRODSFs SSL encryption algorithm mismatch")
+	}
+	if expected.IRODSConfig.SSLSaltSize != actual.IRODSConfig.SSLSaltSize {
+		return errors.New("IRODSFs SSL salt size mismatch")
+	}
+	if expected.IRODSConfig.SSLHashRounds != actual.IRODSConfig.SSLHashRounds {
+		return errors.New("IRODSFs SSL hash rounds mismatch")
+	}
 	if err := checkEncryptedSecret(expected.IRODSConfig.Password, actual.IRODSConfig.Password); err != nil {
 		return fmt.Errorf("IRODSFs password mismatch: %v", err)
 	}

@@ -562,7 +562,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             <label for="idIRODSPassword" class="col-sm-2 col-form-label">Password</label>
             <div class="col-sm-3">
                 <input type="password" class="form-control" id="idIRODSPassword" name="irods_password" placeholder=""
-                    value="{{if .IRODSConfig.Password.IsEncrypted}}{{.RedactedSecret}}{{else}}{{.IRODSConfig.Password.GetPayload}}{{end}}">
+                    value="{{if .IRODSConfig.Password.IsEncrypted}}{{.RedactedSecret}}{{else}}{{.IRODSConfig.Password.GetPayload}}{{end}}" aria-describedby="IRODSPasswordHelpBlock">
+                <small id="IRODSPasswordHelpBlock" class="form-text text-muted">
+                    iRODS User Password. If proxy user is set, give the password for the proxy user.
+                </small>
             </div>
         </div>
 
@@ -581,15 +584,80 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             <label for="idIRODSProxyUsername" class="col-sm-2 col-form-label">Proxy Username</label>
             <div class="col-sm-3">
                 <input type="text" class="form-control" id="idIRODSProxyUsername" name="irods_proxyusername" placeholder=""
-                    value="{{.IRODSConfig.ProxyUsername}}" maxlength="255">
+                    value="{{.IRODSConfig.ProxyUsername}}" maxlength="255" aria-describedby="IRODSProxyUsernameHelpBlock">
+                <small id="IRODSProxyUsernameHelpBlock" class="form-text text-muted">
+                    iRODS Proxy Username, optional. Proxy user must have admin privilege.
+                </small>
             </div>
             <div class="col-sm-2"></div>
             <label for="idIRODSResourceServer" class="col-sm-2 col-form-label">Resource Server</label>
             <div class="col-sm-3">
                 <input type="text" class="form-control" id="idIRODSResourceServer" name="irods_resource" placeholder=""
                     value="{{.IRODSConfig.ResourceServer}}" aria-describedby="IRODSResourceServerPathHelpBlock">
-                <small id="IRODSResourceServerHelpBlock" class="form-text text-muted">
+                <small id="IRODSResourceServerPathHelpBlock" class="form-text text-muted">
                     iRODS Resource Server, optional.
+                </small>
+            </div>
+        </div>
+
+        <div class="form-group row fsconfig fsconfig-irodsfs">
+            <label for="idIRODSAuthScheme" class="col-sm-2 col-form-label">Authentication Scheme</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="idIRODSAuthScheme" name="irods_auth_scheme" placeholder=""
+                    value="{{.IRODSConfig.AuthScheme}}" aria-describedby="IRODSAuthSchemeHelpBlock">
+                <small id="IRODSAuthSchemeHelpBlock" class="form-text text-muted">
+                    iRODS Authentication Scheme, optional. Example: "native" or "pam". Default: "native".
+                </small>
+            </div>
+        </div>
+
+        <div class="form-group row fsconfig fsconfig-irodsfs">
+            <label for="idIRODSSSLCACertificatePath" class="col-sm-2 col-form-label">SSL CA Certificate Path</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="idIRODSSSLCACertificatePath" name="irods_ssl_ca_cert_path" placeholder=""
+                    value="{{.IRODSConfig.SSLCACertificatePath}}" maxlength="255" aria-describedby="IRODSSSLCACertificatePathHelpBlock">
+                <small id="IRODSSSLCACertificatePathHelpBlock" class="form-text text-muted">
+                    iRODS SSL CA Certificate File Path, optional. Only required for PAM/SSL authentication.
+                </small>
+            </div>
+        </div>
+            
+        <div class="form-group row fsconfig fsconfig-irodsfs">
+            <label for="idIRODSSSLAlgorithm" class="col-sm-2 col-form-label">SSL Encryption Algorithm</label>
+            <div class="col-sm-3">
+                <input type="text" class="form-control" id="idIRODSSSLAlgorithm" name="irods_ssl_algorithm" placeholder=""
+                    value="{{.IRODSConfig.SSLAlgorithm}}" maxlength="255" aria-describedby="IRODSSSLAlgorithmHelpBlock">
+                <small id="IRODSSSLAlgorithmHelpBlock" class="form-text text-muted">
+                    iRODS SSL Encryption Algorithm, optional. Only required for PAM/SSL authentication.
+                </small>
+            </div>
+            <div class="col-sm-2"></div>
+            <label for="idIRODSSSLKeySize" class="col-sm-2 col-form-label">SSL Encryption Key Size</label>
+            <div class="col-sm-3">
+                <input type="number" class="form-control" id="idIRODSSSLKeySize" name="irods_ssl_key_size" placeholder=""
+                    value="{{.IRODSConfig.SSLKeySize}}" aria-describedby="IRODSSSLKeySizeHelpBlock">
+                <small id="IRODSSSLKeySizeHelpBlock" class="form-text text-muted">
+                    iRODS SSL Encryption Key Size, optional. Only required for PAM/SSL authentication.
+                </small>
+            </div>
+        </div>
+
+        <div class="form-group row fsconfig fsconfig-irodsfs">
+            <label for="idIRODSSSLSaltSize" class="col-sm-2 col-form-label">SSL Encryption Salt Size</label>
+            <div class="col-sm-3">
+                <input type="number" class="form-control" id="idIRODSSSLSaltSize" name="irods_ssl_salt_size" placeholder=""
+                    value="{{.IRODSConfig.SSLSaltSize}}" maxlength="255" aria-describedby="IRODSSSLSaltSizeHelpBlock">
+                <small id="IRODSSSLSaltSizeHelpBlock" class="form-text text-muted">
+                    iRODS SSL Encryption Salt Size, optional. Only required for PAM/SSL authentication.
+                </small>
+            </div>
+            <div class="col-sm-2"></div>
+            <label for="idIRODSSSLHashRounds" class="col-sm-2 col-form-label">SSL Encryption Hash Rounds</label>
+            <div class="col-sm-3">
+                <input type="number" class="form-control" id="idIRODSSSLHashRounds" name="irods_ssl_hash_rounds" placeholder=""
+                    value="{{.IRODSConfig.SSLHashRounds}}" aria-describedby="IRODSSSLHashRoundsHelpBlock">
+                <small id="IRODSSSLHashRoundsHelpBlock" class="form-text text-muted">
+                    iRODS SSL Encryption Hash Rounds, optional. Only required for PAM/SSL authentication.
                 </small>
             </div>
         </div>

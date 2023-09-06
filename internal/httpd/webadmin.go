@@ -1514,6 +1514,24 @@ func getIRODSConfig(r *http.Request) (vfs.IRODSFsConfig, error) {
 	config.ProxyUsername = r.Form.Get("irods_proxyusername")
 	config.CollectionPath = r.Form.Get("irods_collection")
 	config.ResourceServer = r.Form.Get("irods_resource")
+	config.AuthScheme = r.Form.Get("irods_auth_scheme")
+	config.SSLCACertificatePath = r.Form.Get("irods_ssl_ca_cert_path")
+	encryptionKeySize, err := strconv.ParseInt(r.Form.Get("irods_ssl_key_size"), 10, 32)
+	if err != nil {
+		return config, fmt.Errorf("invalid irods ssl key size: %w", err)
+	}
+	config.SSLKeySize = int(encryptionKeySize)
+	config.SSLAlgorithm = r.Form.Get("irods_ssl_algorithm")
+	saltSize, err := strconv.ParseInt(r.Form.Get("irods_ssl_salt_size"), 10, 32)
+	if err != nil {
+		return config, fmt.Errorf("invalid irods ssl salt size: %w", err)
+	}
+	config.SSLSaltSize = int(saltSize)
+	hashRounds, err := strconv.ParseInt(r.Form.Get("irods_ssl_hash_rounds"), 10, 32)
+	if err != nil {
+		return config, fmt.Errorf("invalid irods ssl hash rounds: %w", err)
+	}
+	config.SSLHashRounds = int(hashRounds)
 	config.Password = getSecretFromFormField(r, "irods_password")
 	return config, err
 }
