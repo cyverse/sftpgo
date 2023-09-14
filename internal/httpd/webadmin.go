@@ -1515,6 +1515,12 @@ func getIRODSConfig(r *http.Request) (vfs.IRODSFsConfig, error) {
 	config.CollectionPath = r.Form.Get("irods_collection")
 	config.ResourceServer = r.Form.Get("irods_resource")
 	config.AuthScheme = r.Form.Get("irods_auth_scheme")
+	requireClientServerNegotiation, err := strconv.ParseBool(r.Form.Get("irods_require_cs_negotiation"))
+	if err != nil {
+		return config, fmt.Errorf("invalid irods require cs negotiation: %w", err)
+	}
+	config.RequireClientServerNegotiation = requireClientServerNegotiation
+	config.ClientServerNegotiationPolicy = r.Form.Get("irods_cs_negotiation_policy")
 	config.SSLCACertificatePath = r.Form.Get("irods_ssl_ca_cert_path")
 	encryptionKeySize, err := strconv.ParseInt(r.Form.Get("irods_ssl_key_size"), 10, 32)
 	if err != nil {

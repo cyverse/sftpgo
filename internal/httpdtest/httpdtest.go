@@ -2016,6 +2016,12 @@ func compareIRODSFsConfig(expected *vfs.Filesystem, actual *vfs.Filesystem) erro
 	if expected.IRODSConfig.AuthScheme != actual.IRODSConfig.AuthScheme {
 		return errors.New("IRODSFs auth scheme mismatch")
 	}
+	if expected.IRODSConfig.RequireClientServerNegotiation != actual.IRODSConfig.RequireClientServerNegotiation {
+		return errors.New("IRODSFs require client-server negotiation mismatch")
+	}
+	if expected.IRODSConfig.ClientServerNegotiationPolicy != actual.IRODSConfig.ClientServerNegotiationPolicy {
+		return errors.New("IRODSFs client-server negotiation policy mismatch")
+	}
 	if expected.IRODSConfig.SSLCACertificatePath != actual.IRODSConfig.SSLCACertificatePath {
 		return errors.New("IRODSFs SSL CA certificate path scheme mismatch")
 	}

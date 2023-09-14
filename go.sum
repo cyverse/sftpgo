@@ -832,8 +832,8 @@ github.com/cyphar/filepath-securejoin v0.2.2/go.mod h1:FpkQEhXnPnOthhzymB7CGsFk2
 github.com/cyphar/filepath-securejoin v0.2.3/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
 github.com/cyverse/go-irodsclient v0.12.8 h1:sUaNCQ7nDxUiD+HI/hBSnUiY11P8Ph+IujJt/M8Eh48=
 github.com/cyverse/go-irodsclient v0.12.8/go.mod h1:SOMr0JtAmbtYp06ZdYhxBYi47GYpV9ImW7sqKVypQhU=
-github.com/cyverse/sftpgo-sdk v0.1.3-0.20230906214213-bdb8dbbe543f h1:479l82wotcLnomdIiaypZ6yUNRQ34BGf+mUiM5xVT8Q=
-github.com/cyverse/sftpgo-sdk v0.1.3-0.20230906214213-bdb8dbbe543f/go.mod h1:Giy5vj7Gmju0nGlmBNd28DwPo0G0o1nr9XkE+vu3i+o=
+github.com/cyverse/sftpgo-sdk v0.1.3-0.20230913180245-efcf4a8e8628 h1:PNaD/30SPnBkhd7MNe6A9R7prFkMHXg0X9CAWhExGXQ=
+github.com/cyverse/sftpgo-sdk v0.1.3-0.20230913180245-efcf4a8e8628/go.mod h1:Giy5vj7Gmju0nGlmBNd28DwPo0G0o1nr9XkE+vu3i+o=
 github.com/d2g/dhcp4 v0.0.0-20170904100407-a1d1b6c41b1c/go.mod h1:Ct2BUK8SB0YC1SMSibvLzxjeJLnrYEVLULFNiHY9YfQ=
 github.com/d2g/dhcp4client v1.0.0/go.mod h1:j0hNfjhrt2SxUOw55nL0ATM/z4Yt3t2Kd1mW34z5W5s=
 github.com/d2g/dhcp4server v0.0.0-20181031114812-7d4a0a7f59a5/go.mod h1:Eo87+Kg/IX2hfWJfwxMzLyuSZyxSoAug2nGa1G2QAi8=

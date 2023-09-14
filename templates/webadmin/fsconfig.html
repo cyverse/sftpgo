@@ -603,11 +603,31 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         <div class="form-group row fsconfig fsconfig-irodsfs">
             <label for="idIRODSAuthScheme" class="col-sm-2 col-form-label">Authentication Scheme</label>
             <div class="col-sm-10">
-                <input type="text" class="form-control" id="idIRODSAuthScheme" name="irods_auth_scheme" placeholder=""
-                    value="{{.IRODSConfig.AuthScheme}}" aria-describedby="IRODSAuthSchemeHelpBlock">
-                <small id="IRODSAuthSchemeHelpBlock" class="form-text text-muted">
-                    iRODS Authentication Scheme, optional. Example: "native" or "pam". Default: "native".
-                </small>
+                <select class="form-control selectpicker" id="idIRODSAuthScheme" name="irods_auth_scheme">
+                    <option value="native" {{if eq .IRODSConfig.AuthScheme "" }}selected{{end}}>Default (Native)</option>
+                    <option value="native" {{if eq .IRODSConfig.AuthScheme "native" }}selected{{end}}>Native</option>
+                    <option value="pam" {{if eq .IRODSConfig.AuthScheme "pam" }}selected{{end}}>PAM</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group fsconfig fsconfig-irodsfs">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="idIRODSRequireCSNegotiation" name="irods_require_cs_negotiation" {{if
+                    .IRODSConfig.RequireClientServerNegotiation}}checked{{end}}>
+                <label for="idIRODSRequireCSNegotiation" class="form-check-label">Use Client-Server negotiation (required for PAM/SSL)</label>
+            </div>
+        </div>
+
+        <div class="form-group row fsconfig fsconfig-irodsfs">
+            <label for="idIRODSCSNegotiationPolicy" class="col-sm-2 col-form-label">Client-Server Negotiation Policy</label>
+            <div class="col-sm-10">
+                <select class="form-control selectpicker" id="idIRODSCSNegotiationPolicy" name="irods_cs_negotiation_policy">
+                    <option value="CS_NEG_REFUSE" {{if eq .IRODSConfig.ClientServerNegotiationPolicy "" }}selected{{end}}>Default (CS_NEG_REFUSE)</option>
+                    <option value="CS_NEG_REFUSE" {{if eq .IRODSConfig.ClientServerNegotiationPolicy "CS_NEG_REFUSE" }}selected{{end}}>CS_NEG_REFUSE</option>
+                    <option value="CS_NEG_REQUIRE" {{if eq .IRODSConfig.ClientServerNegotiationPolicy "CS_NEG_REQUIRE" }}selected{{end}}>CS_NEG_REQUIRE</option>
+                    <option value="CS_NEG_DONT_CARE" {{if eq .IRODSConfig.ClientServerNegotiationPolicy "CS_NEG_DONT_CARE" }}selected{{end}}>CS_NEG_DONT_CARE</option>
+                </select>
             </div>
         </div>
 

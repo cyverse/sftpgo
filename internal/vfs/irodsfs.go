@@ -72,6 +72,12 @@ func (c *IRODSFsConfig) isEqual(other *IRODSFsConfig) bool {
 	if c.AuthScheme != other.AuthScheme {
 		return false
 	}
+	if c.RequireClientServerNegotiation != other.RequireClientServerNegotiation {
+		return false
+	}
+	if c.ClientServerNegotiationPolicy != other.ClientServerNegotiationPolicy {
+		return false
+	}
 	if c.SSLCACertificatePath != other.SSLCACertificatePath {
 		return false
 	}
@@ -126,7 +132,20 @@ func (c *IRODSFsConfig) validate() error {
 	if strings.ToLower(c.AuthScheme) != "" && strings.ToLower(c.AuthScheme) != "native" && strings.ToLower(c.AuthScheme) != "pam" {
 		return errors.New("unknown authentication scheme")
 	}
+
+	requireSSL := false
 	if strings.ToLower(c.AuthScheme) == "pam" {
+		requireSSL = true
+	}
+	if c.RequireClientServerNegotiation {
+		if strings.ToLower(c.ClientServerNegotiationPolicy) == "cs_neg_require" {
+			requireSSL = true
+		} else if strings.ToLower(c.ClientServerNegotiationPolicy) == "cs_neg_dont_care" {
+			requireSSL = true
+		}
+	}
+
+	if requireSSL {
 		if c.SSLCACertificatePath == "" {
 			return errors.New("SSL CA certificate path cannot be empty when PAM authentication is used")
 		}
@@ -143,6 +162,7 @@ func (c *IRODSFsConfig) validate() error {
 			return errors.New("SSL encryption has rounds cannot be 0 when PAM authentication is used")
 		}
 	}
+
 	if err := c.validateCredentials(); err != nil {
 		return err
 	}
@@ -815,15 +835,26 @@ func (fs *IRODSFs) createConnection() error {
 		if err != nil {
 			return err
 		}
-
-		sslConf, err := irodstypes.CreateIRODSSSLConfig(fs.config.SSLCACertificatePath, fs.config.SSLKeySize, fs.config.SSLAlgorithm, fs.config.SSLSaltSize, fs.config.SSLHashRounds)
-		if err != nil {
-			return err
-		}
-
-		irodsAccount.SetSSLConfiguration(sslConf)
 	default:
 		return fmt.Errorf("unknown authentication scheme %s", fs.config.AuthScheme)
+	}
+
+	if fs.config.RequireClientServerNegotiation {
+		require, err := irodstypes.GetCSNegotiationRequire(fs.config.ClientServerNegotiationPolicy)
+		if err != nil {
+			return fmt.Errorf("failed to create iRODS client-server negotiation policy from string '%s'", fs.config.ClientServerNegotiationPolicy)
+		}
+
+		irodsAccount.SetCSNegotiation(true, require)
+
+		if len(fs.config.SSLCACertificatePath) > 0 {
+			sslConf, err := irodstypes.CreateIRODSSSLConfig(fs.config.SSLCACertificatePath, fs.config.SSLKeySize, fs.config.SSLAlgorithm, fs.config.SSLSaltSize, fs.config.SSLHashRounds)
+			if err != nil {
+				return err
+			}
+
+			irodsAccount.SetSSLConfiguration(sslConf)
+		}
 	}
 
 	fsLog(fs, logger.LevelDebug, "connecting to iRODS %s:%d using %s auth", irodsAccount.Host, irodsAccount.Port, irodsAccount.AuthenticationScheme)

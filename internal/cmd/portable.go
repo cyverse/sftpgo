@@ -103,6 +103,8 @@ var (
 	portableIRODSProxyUsername         string
 	portableIRODSResourceServer        string
 	portableIRODSAuthScheme            string
+	portableIRODSRequireCSNegotiation  bool
+	portableIRODSCSNegotiationPolicy   string
 	portableIRODSSSLCACertificatePath  string
 	portableIRODSSSLKeySize            int
 	portableIRODSSSLAlgorithm          string
@@ -269,17 +271,19 @@ Please take a look at the usage below to customize the serving parameters`,
 						},
 						IRODSConfig: vfs.IRODSFsConfig{
 							BaseIRODSFsConfig: sdk.BaseIRODSFsConfig{
-								Endpoint:             portableIRODSEndpoint,
-								CollectionPath:       portableIRODSCollectionPath,
-								Username:             portableIRODSUsername,
-								ProxyUsername:        portableIRODSProxyUsername,
-								ResourceServer:       portableIRODSResourceServer,
-								AuthScheme:           portableIRODSAuthScheme,
-								SSLCACertificatePath: portableIRODSSSLCACertificatePath,
-								SSLKeySize:           portableIRODSSSLKeySize,
-								SSLAlgorithm:         portableIRODSSSLAlgorithm,
-								SSLSaltSize:          portableIRODSSSLSaltSize,
-								SSLHashRounds:        protableIRODSSSLHashRounds,
+								Endpoint:                       portableIRODSEndpoint,
+								CollectionPath:                 portableIRODSCollectionPath,
+								Username:                       portableIRODSUsername,
+								ProxyUsername:                  portableIRODSProxyUsername,
+								ResourceServer:                 portableIRODSResourceServer,
+								AuthScheme:                     portableIRODSAuthScheme,
+								RequireClientServerNegotiation: portableIRODSRequireCSNegotiation,
+								ClientServerNegotiationPolicy:  portableIRODSCSNegotiationPolicy,
+								SSLCACertificatePath:           portableIRODSSSLCACertificatePath,
+								SSLKeySize:                     portableIRODSSSLKeySize,
+								SSLAlgorithm:                   portableIRODSSSLAlgorithm,
+								SSLSaltSize:                    portableIRODSSSLSaltSize,
+								SSLHashRounds:                  protableIRODSSSLHashRounds,
 							},
 							Password: kms.NewPlainSecret(portableIRODSPassword),
 						},
@@ -448,6 +452,8 @@ by overlapping round-trip times`)
 	portableCmd.Flags().StringVar(&portableIRODSProxyUsername, "irods-proxyusername", "", `iRODS proxy user for iRODS provider`)
 	portableCmd.Flags().StringVar(&portableIRODSResourceServer, "irods-resource", "", `iRODS resource server for iRODS provider`)
 	portableCmd.Flags().StringVar(&portableIRODSAuthScheme, "irods-auth-scheme", "", `iRODS authentication scheme for iRODS provider`)
+	portableCmd.Flags().BoolVar(&portableIRODSRequireCSNegotiation, "irods-require-cs-negotiation", false, `iRODS client-server negotiation is required`)
+	portableCmd.Flags().StringVar(&portableIRODSCSNegotiationPolicy, "irods-cs-negotiation-policy", "", `iRODS client-server negotiation policy`)
 	portableCmd.Flags().StringVar(&portableIRODSSSLCACertificatePath, "irods-ssl-ca-cert", "", `iRODS SSL CA Certificate file path for iRODS provider`)
 	portableCmd.Flags().StringVar(&portableIRODSSSLAlgorithm, "irods-ssl-algorithm", "", `iRODS SSL encryption algorithm for iRODS provider`)
 	portableCmd.Flags().IntVar(&portableIRODSSSLKeySize, "irods-ssl-key-size", 0, `iRODS SSL encryption key size for iRODS provider`)
