@@ -295,13 +295,8 @@ func (fs *IRODSFs) Stat(name string) (os.FileInfo, error) {
 		return nil, fmt.Errorf("irods client is not connected yet")
 	}
 
-	err := fs.ensureIRODSPath(name)
-	if err != nil {
-		fsLog(fs, logger.LevelError, "failed to stat a file %s", name)
-		return nil, err
-	}
-
-	entry, err := fs.irodsClient.Stat(name)
+	irodsPath := fs.getIRODSPath(name)
+	entry, err := fs.irodsClient.Stat(irodsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -322,20 +317,15 @@ func (fs *IRODSFs) Open(name string, offset int64) (File, *pipeat.PipeReaderAt, 
 		return nil, nil, nil, fmt.Errorf("irods client is not connected yet")
 	}
 
-	err := fs.ensureIRODSPath(name)
-	if err != nil {
-		fsLog(fs, logger.LevelError, "failed to open a file %s", name)
-		return nil, nil, nil, err
-	}
-
+	irodsPath := fs.getIRODSPath(name)
 	r, w, err := pipeat.PipeInDir(fs.localTempDir)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	fsLog(fs, logger.LevelDebug, "opening a file %s", name)
+	fsLog(fs, logger.LevelDebug, "opening a file %s", irodsPath)
 
-	irodsFileHandle, err := fs.irodsClient.OpenFile(name, "", string(irodstypes.FileOpenModeReadOnly))
+	irodsFileHandle, err := fs.irodsClient.OpenFile(irodsPath, "", string(irodstypes.FileOpenModeReadOnly))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -352,7 +342,7 @@ func (fs *IRODSFs) Open(name string, offset int64) (File, *pipeat.PipeReaderAt, 
 		n, err := fs.copy(w, irodsFileHandle, irodsReadSize)
 		w.CloseWithError(err) //nolint:errcheck
 		irodsFileHandle.Close()
-		fsLog(fs, logger.LevelDebug, "download completed, path: %#v size: %v, err: %v", name, n, err)
+		fsLog(fs, logger.LevelDebug, "download completed, path: %#v size: %v, err: %v", irodsPath, n, err)
 	}()
 
 	return nil, r, nil, nil
@@ -365,12 +355,7 @@ func (fs *IRODSFs) Create(name string, flag, _ int) (File, *PipeWriter, func(), 
 		return nil, nil, nil, fmt.Errorf("irods client is not connected yet")
 	}
 
-	err := fs.ensureIRODSPath(name)
-	if err != nil {
-		fsLog(fs, logger.LevelError, "failed to create a file %s", name)
-		return nil, nil, nil, err
-	}
-
+	irodsPath := fs.getIRODSPath(name)
 	r, w, err := pipeat.PipeInDir(fs.localTempDir)
 	if err != nil {
 		return nil, nil, nil, err
@@ -378,14 +363,14 @@ func (fs *IRODSFs) Create(name string, flag, _ int) (File, *PipeWriter, func(), 
 	p := NewPipeWriter(w)
 
 	var irodsFileHandle *irodsfs.FileHandle
-	if fs.irodsClient.ExistsFile(name) {
+	if fs.irodsClient.ExistsFile(irodsPath) {
 		// open
-		fsLog(fs, logger.LevelDebug, "opening a file %s", name)
-		irodsFileHandle, err = fs.irodsClient.OpenFile(name, "", string(irodstypes.FileOpenModeWriteTruncate))
+		fsLog(fs, logger.LevelDebug, "opening a file %s", irodsPath)
+		irodsFileHandle, err = fs.irodsClient.OpenFile(irodsPath, "", string(irodstypes.FileOpenModeWriteTruncate))
 	} else {
 		// create
-		fsLog(fs, logger.LevelDebug, "creating a file %s", name)
-		irodsFileHandle, err = fs.irodsClient.CreateFile(name, "", string(irodstypes.FileOpenModeWriteOnly))
+		fsLog(fs, logger.LevelDebug, "creating a file %s", irodsPath)
+		irodsFileHandle, err = fs.irodsClient.CreateFile(irodsPath, "", string(irodstypes.FileOpenModeWriteOnly))
 	}
 
 	if err != nil {
@@ -407,8 +392,7 @@ func (fs *IRODSFs) Create(name string, flag, _ int) (File, *PipeWriter, func(), 
 		}
 		r.CloseWithError(err) //nolint:errcheck
 		p.Done(err)
-		fsLog(fs, logger.LevelDebug, "upload completed, path: %#v, readed bytes: %v, err: %v",
-			name, n, err)
+		fsLog(fs, logger.LevelDebug, "upload completed, path: %#v, readed bytes: %v, err: %v", irodsPath, n, err)
 	}()
 
 	return nil, p, nil, nil
@@ -425,29 +409,20 @@ func (fs *IRODSFs) Rename(source, target string) error {
 		return nil
 	}
 
-	err := fs.ensureIRODSPath(source)
-	if err != nil {
-		fsLog(fs, logger.LevelError, "failed to rename a file %s", source)
-		return err
-	}
+	sourceIrodsPath := fs.getIRODSPath(source)
+	targetIrodsPath := fs.getIRODSPath(target)
 
-	err = fs.ensureIRODSPath(target)
-	if err != nil {
-		fsLog(fs, logger.LevelError, "failed to rename a file to %s", target)
-		return err
-	}
+	fsLog(fs, logger.LevelDebug, "renaming a file %s ==> %s", sourceIrodsPath, targetIrodsPath)
 
-	fsLog(fs, logger.LevelDebug, "renaming a file %s ==> %s", source, target)
-
-	entry, err := fs.irodsClient.Stat(source)
+	entry, err := fs.irodsClient.Stat(sourceIrodsPath)
 	if err != nil {
 		return err
 	}
 
 	if entry.Type == irodsfs.DirectoryEntry {
-		return fs.irodsClient.RenameDirToDir(source, target)
+		return fs.irodsClient.RenameDirToDir(sourceIrodsPath, targetIrodsPath)
 	}
-	return fs.irodsClient.RenameFileToFile(source, target)
+	return fs.irodsClient.RenameFileToFile(sourceIrodsPath, targetIrodsPath)
 }
 
 // Remove removes the named file or (empty) directory.
@@ -457,25 +432,20 @@ func (fs *IRODSFs) Remove(name string, isDir bool) error {
 		return fmt.Errorf("irods client is not connected yet")
 	}
 
-	err := fs.ensureIRODSPath(name)
-	if err != nil {
-		fsLog(fs, logger.LevelError, "failed to remove a file/dir %s", name)
-		return err
-	}
-
+	irodsPath := fs.getIRODSPath(name)
 	if isDir {
-		fsLog(fs, logger.LevelDebug, "removing a dir %s", name)
-		err := fs.irodsClient.RemoveDir(name, false, true)
+		fsLog(fs, logger.LevelDebug, "removing a dir %s", irodsPath)
+		err := fs.irodsClient.RemoveDir(irodsPath, false, true)
 		if err != nil {
 			if irodstypes.IsCollectionNotEmptyError(err) {
-				return fmt.Errorf("cannot remove non empty directory: %#v", name)
+				return fmt.Errorf("cannot remove non empty directory: %#v", irodsPath)
 			}
 			return err
 		}
 		return nil
 	}
-	fsLog(fs, logger.LevelDebug, "removing a file %s", name)
-	return fs.irodsClient.RemoveFile(name, true)
+	fsLog(fs, logger.LevelDebug, "removing a file %s", irodsPath)
+	return fs.irodsClient.RemoveFile(irodsPath, true)
 }
 
 // Mkdir creates a new directory with the specified name and default permissions
@@ -485,18 +455,13 @@ func (fs *IRODSFs) Mkdir(name string) error {
 		return fmt.Errorf("irods client is not connected yet")
 	}
 
-	err := fs.ensureIRODSPath(name)
-	if err != nil {
-		fsLog(fs, logger.LevelError, "failed to make a dir %s", name)
-		return err
-	}
-
-	if !fs.irodsClient.ExistsDir(name) {
-		fsLog(fs, logger.LevelDebug, "making a dir %s", name)
-		fs.irodsClient.MakeDir(name, false)
+	irodsPath := fs.getIRODSPath(name)
+	if !fs.irodsClient.ExistsDir(irodsPath) {
+		fsLog(fs, logger.LevelDebug, "making a dir %s", irodsPath)
+		fs.irodsClient.MakeDir(irodsPath, false)
 		return nil
 	}
-	return fmt.Errorf("cannot make directory that already exists: %#v", name)
+	return fmt.Errorf("cannot make directory that already exists: %#v", irodsPath)
 }
 
 // Symlink creates source as a symbolic link to target.
@@ -533,14 +498,10 @@ func (fs *IRODSFs) Truncate(name string, size int64) error {
 		return fmt.Errorf("irods client is not connected yet")
 	}
 
-	err := fs.ensureIRODSPath(name)
-	if err != nil {
-		fsLog(fs, logger.LevelError, "failed to truncate a file %s", name)
-		return err
-	}
+	irodsPath := fs.getIRODSPath(name)
 
-	fsLog(fs, logger.LevelDebug, "truncating a file %s to %d", name, size)
-	return fs.irodsClient.TruncateFile(name, size)
+	fsLog(fs, logger.LevelDebug, "truncating a file %s to %d", irodsPath, size)
+	return fs.irodsClient.TruncateFile(irodsPath, size)
 }
 
 // ReadDir reads the directory named by dirname and returns
@@ -551,15 +512,11 @@ func (fs *IRODSFs) ReadDir(dirname string) ([]os.FileInfo, error) {
 		return nil, fmt.Errorf("irods client is not connected yet")
 	}
 
-	err := fs.ensureIRODSPath(dirname)
-	if err != nil {
-		fsLog(fs, logger.LevelError, "failed to readdir a dir %s", dirname)
-		return nil, err
-	}
+	irodsPath := fs.getIRODSPath(dirname)
 
 	var result []os.FileInfo
 
-	entries, err := fs.irodsClient.List(dirname)
+	entries, err := fs.irodsClient.List(irodsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -642,22 +599,18 @@ func (fs *IRODSFs) GetDirSize(dirname string) (int, int64, error) {
 		return 0, 0, fmt.Errorf("irods client is not connected yet")
 	}
 
-	err := fs.ensureIRODSPath(dirname)
-	if err != nil {
-		fsLog(fs, logger.LevelError, "failed to get a dir size of %s", dirname)
-		return 0, 0, err
-	}
+	irodsPath := fs.getIRODSPath(dirname)
 
 	numFiles := 0
 	size := int64(0)
 
-	entry, err := fs.irodsClient.Stat(dirname)
+	entry, err := fs.irodsClient.Stat(irodsPath)
 	if err != nil {
 		return 0, 0, err
 	}
 
 	if entry.Type == irodsfs.DirectoryEntry {
-		err = fs.Walk(dirname, func(path string, info os.FileInfo, err error) error {
+		err = fs.Walk(irodsPath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
@@ -707,13 +660,8 @@ func (fs *IRODSFs) Walk(root string, walkFn filepath.WalkFunc) error {
 		dirName := pathStack[len(pathStack)-1]
 		pathStack = pathStack[0 : len(pathStack)-1]
 
-		err := fs.ensureIRODSPath(dirName)
-		if err != nil {
-			fsLog(fs, logger.LevelError, "failed to list a dir %s", dirName)
-			return err
-		}
-
-		entries, err := fs.irodsClient.List(dirName)
+		irodsPath := fs.getIRODSPath(dirName)
+		entries, err := fs.irodsClient.List(irodsPath)
 		if err != nil {
 			return err
 		}
@@ -753,8 +701,7 @@ func (fs *IRODSFs) ResolvePath(virtualPath string) (string, error) {
 		virtualPath = path.Clean("/" + virtualPath)
 	}
 
-	resolvedPath := fs.Join(fs.config.CollectionPath, strings.TrimPrefix(virtualPath, "/"))
-	return resolvedPath, nil
+	return virtualPath, nil
 }
 
 // GetMimeType returns the content type
@@ -764,13 +711,8 @@ func (fs *IRODSFs) GetMimeType(name string) (string, error) {
 		return "", fmt.Errorf("irods client is not connected yet")
 	}
 
-	err := fs.ensureIRODSPath(name)
-	if err != nil {
-		fsLog(fs, logger.LevelError, "failed to open a file %s", name)
-		return "", err
-	}
-
-	irodsFileHandle, err := fs.irodsClient.OpenFile(name, "", string(irodstypes.FileOpenModeReadOnly))
+	irodsPath := fs.getIRODSPath(name)
+	irodsFileHandle, err := fs.irodsClient.OpenFile(irodsPath, "", string(irodstypes.FileOpenModeReadOnly))
 	if err != nil {
 		return "", err
 	}
@@ -916,14 +858,11 @@ func (fs *IRODSFs) copy(dst io.Writer, src io.Reader, buffersize int) (written i
 	return written, err
 }
 
-func (fs *IRODSFs) ensureIRODSPath(path string) error {
-	if path == fs.config.CollectionPath {
-		// root
-		return nil
+// convert sftpgo path to irods path
+func (fs *IRODSFs) getIRODSPath(virtualPath string) string {
+	if len(virtualPath) == 0 {
+		return ""
 	}
 
-	if !strings.HasPrefix(path, fs.config.CollectionPath+"/") {
-		return fmt.Errorf("path '%s' is out of the collection path '%s'", path, fs.config.CollectionPath)
-	}
-	return nil
+	return path.Join(fs.config.CollectionPath, strings.TrimPrefix(virtualPath, "/"))
 }
