@@ -2,7 +2,7 @@
 rm -rf release
 mkdir -p release
 
-VERSION=$(git tag --sort=committerdate | tail -1)
+VERSION="v2.4.5i4"
 COMMIT_SHA=$(git describe --always --dirty)
 BUILD_DATE=$(date -u +%FT%TZ)
 LDFLAGS="-s -w -X 'github.com/drakkan/sftpgo/v2/version.commit=${COMMIT_SHA}' -X 'github.com/drakkan/sftpgo/v2/version.date=${BUILD_DATE}'"
