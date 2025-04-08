@@ -782,20 +782,21 @@ func (fs *IRODSFs) createConnection() error {
 	}
 
 	if fs.config.RequireClientServerNegotiation {
-		require, err := irodstypes.GetCSNegotiationRequire(fs.config.ClientServerNegotiationPolicy)
-		if err != nil {
-			return fmt.Errorf("failed to create iRODS client-server negotiation policy from string '%s'", fs.config.ClientServerNegotiationPolicy)
-		}
-
+		require := irodstypes.GetCSNegotiationPolicyRequest(fs.config.ClientServerNegotiationPolicy)
 		irodsAccount.SetCSNegotiation(true, require)
 
-		if len(fs.config.SSLCACertificatePath) > 0 {
-			sslConf, err := irodstypes.CreateIRODSSSLConfig(fs.config.SSLCACertificatePath, fs.config.SSLKeySize, fs.config.SSLAlgorithm, fs.config.SSLSaltSize, fs.config.SSLHashRounds)
-			if err != nil {
-				return err
+		if require == irodstypes.CSNegotiationPolicyRequestSSL || len(fs.config.SSLCACertificatePath) > 0 {
+			// SSL
+			sslConf := irodstypes.IRODSSSLConfig{
+				CACertificatePath:       fs.config.SSLCACertificatePath,
+				EncryptionKeySize:       fs.config.SSLKeySize,
+				EncryptionAlgorithm:     fs.config.SSLAlgorithm,
+				EncryptionSaltSize:      fs.config.SSLSaltSize,
+				EncryptionNumHashRounds: fs.config.SSLHashRounds,
+				VerifyServer:            irodstypes.SSLVerifyServerNone,
 			}
 
-			irodsAccount.SetSSLConfiguration(sslConf)
+			irodsAccount.SetSSLConfiguration(&sslConf)
 		}
 	}
 
