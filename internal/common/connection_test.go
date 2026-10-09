@@ -654,7 +654,7 @@ func TestFsFileCopier(t *testing.T) {
 	assert.True(t, ok)
 	fs = vfs.Fs(&vfs.IRODSFs{})
 	_, ok = fs.(vfs.FsFileCopier)
-	assert.True(t, ok)
+	assert.False(t, ok)
 }
 
 func TestFilePatterns(t *testing.T) {
