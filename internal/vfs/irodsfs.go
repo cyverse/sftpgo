@@ -336,28 +336,29 @@ func (fs *IRODSFs) Open(name string, offset int64) (File, PipeReader, func(), er
 	}
 
 	irodsPath := fs.getIRODSPath(name)
-	r, w, err := pipeat.PipeInDir(fs.localTempDir)
-	if err != nil {
-		return nil, nil, nil, err
-	}
 
 	fsLog(fs, logger.LevelDebug, "opening a file %s", irodsPath)
 
 	irodsFileHandle, err := fs.irodsClient.OpenFile(irodsPath, "", string(irodstypes.FileOpenModeReadOnly))
 	if err != nil {
-		w.CloseWithError(err) //nolint:errcheck
 		return nil, nil, nil, err
 	}
 
 	if offset > 0 {
 		_, err = irodsFileHandle.Seek(offset, io.SeekStart)
 		if err != nil {
-			w.CloseWithError(err) //nolint:errcheck
 			irodsFileHandle.Close()
 			return nil, nil, nil, err
 		}
 	}
 
+	// the pipe is created after opening the file, closing the writer
+	// on error would block until the reader is closed
+	r, w, err := pipeat.PipeInDir(fs.localTempDir)
+	if err != nil {
+		irodsFileHandle.Close()
+		return nil, nil, nil, err
+	}
 	p := NewPipeReader(r)
 
 	go func() {
@@ -386,13 +387,9 @@ func (fs *IRODSFs) Create(name string, flag, checks int) (File, PipeWriter, func
 	}
 
 	irodsPath := fs.getIRODSPath(name)
-	r, w, err := pipeat.PipeInDir(fs.localTempDir)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	p := NewPipeWriter(w)
 
 	var irodsFileHandle *irodsfs.FileHandle
+	var err error
 	if fs.irodsClient.ExistsFile(irodsPath) {
 		// open
 		fsLog(fs, logger.LevelDebug, "opening a file %s", irodsPath)
@@ -406,6 +403,14 @@ func (fs *IRODSFs) Create(name string, flag, checks int) (File, PipeWriter, func
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	// the pipe is created after opening the file, as in Open
+	r, w, err := pipeat.PipeInDir(fs.localTempDir)
+	if err != nil {
+		irodsFileHandle.Close()
+		return nil, nil, nil, err
+	}
+	p := NewPipeWriter(w)
 
 	go func() {
 		bw := bufio.NewWriterSize(irodsFileHandle, irodsWriteSize)
