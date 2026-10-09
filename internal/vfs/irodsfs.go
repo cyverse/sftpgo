@@ -461,24 +461,44 @@ func (fs *IRODSFs) Rename(source, target string, checks int) (int, int64, error)
 		return -1, -1, err
 	}
 
-	var numFiles int
-	var filesSize int64
-
 	if entry.Type == irodsfs.DirectoryEntry {
-		err = fs.irodsClient.RenameDirToDir(sourceIrodsPath, targetIrodsPath)
-		if err != nil {
-			return numFiles, filesSize, err
-		}
-	} else {
-		err = fs.irodsClient.RenameFileToFile(sourceIrodsPath, targetIrodsPath)
-		if err != nil {
-			return numFiles, filesSize, err
-		}
-		numFiles++
-		filesSize += entry.Size
+		// we don't know the number of files and their size, the caller will calculate them if needed
+		return -1, -1, fs.irodsClient.RenameDirToDir(sourceIrodsPath, targetIrodsPath)
 	}
 
-	return numFiles, filesSize, nil
+	targetEntry, err := fs.irodsClient.Stat(targetIrodsPath)
+	if err == nil && targetEntry.Type == irodsfs.FileEntry {
+		err = fs.overwriteFile(sourceIrodsPath, targetIrodsPath)
+	} else {
+		err = fs.irodsClient.RenameFileToFile(sourceIrodsPath, targetIrodsPath)
+	}
+	if err != nil {
+		return 0, 0, err
+	}
+	return 1, entry.Size, nil
+}
+
+// overwriteFile renames source to the existing target file. iRODS does not allow to rename
+// over an existing data object, so the target is moved to a backup path and restored on error
+func (fs *IRODSFs) overwriteFile(sourceIrodsPath, targetIrodsPath string) error {
+	backupIrodsPath := fmt.Sprintf("%s.sftpgo-bak-%s", targetIrodsPath, util.GenerateUniqueID())
+
+	fsLog(fs, logger.LevelDebug, "moving existing target file %s ==> %s", targetIrodsPath, backupIrodsPath)
+	if err := fs.irodsClient.RenameFileToFile(targetIrodsPath, backupIrodsPath); err != nil {
+		return err
+	}
+
+	if err := fs.irodsClient.RenameFileToFile(sourceIrodsPath, targetIrodsPath); err != nil {
+		if errRestore := fs.irodsClient.RenameFileToFile(backupIrodsPath, targetIrodsPath); errRestore != nil {
+			fsLog(fs, logger.LevelError, "unable to restore backup file %s ==> %s: %v", backupIrodsPath, targetIrodsPath, errRestore)
+		}
+		return err
+	}
+
+	if err := fs.irodsClient.RemoveFile(backupIrodsPath, true); err != nil {
+		fsLog(fs, logger.LevelWarn, "unable to remove backup file %s: %v", backupIrodsPath, err)
+	}
+	return nil
 }
 
 // Remove removes the named file or (empty) directory.
