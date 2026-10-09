@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/sftp"
 
 	irodsfs "github.com/cyverse/go-irodsclient/fs"
+	irodscommon "github.com/cyverse/go-irodsclient/irods/common"
 	irodstypes "github.com/cyverse/go-irodsclient/irods/types"
 )
 
@@ -423,8 +424,15 @@ func (*IRODSFs) IsPermission(err error) bool {
 		return false
 	}
 
-	// Go-iRODSClient does not report permission error at this point
-	return false
+	// iRODS error codes have the errno appended in the last 3 digits
+	code := irodstypes.GetIRODSErrorCode(err) / 1000 * 1000
+	switch code {
+	case irodscommon.CAT_NO_ACCESS_PERMISSION, irodscommon.SYS_NO_DATA_OBJ_PERMISSION,
+		irodscommon.SYS_NO_PATH_PERMISSION, irodscommon.SYS_USER_NO_PERMISSION:
+		return true
+	default:
+		return false
+	}
 }
 
 // IsNotSupported returns true if the error indicate an unsupported operation
