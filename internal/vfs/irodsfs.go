@@ -600,16 +600,14 @@ func (fs *IRODSFs) GetMimeType(name string) (string, error) {
 	}
 	defer irodsFileHandle.Close()
 
+	// http.DetectContentType considers at most the first 512 bytes
 	buffer := make([]byte, 512)
-	readLen, err := irodsFileHandle.Read(buffer)
+	readLen, err := io.ReadFull(irodsFileHandle, buffer)
 	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 		return "", err
 	}
 
-	ctype := http.DetectContentType(buffer[:readLen])
-	// Rewind file.
-	_, err = irodsFileHandle.Seek(0, io.SeekStart)
-	return ctype, err
+	return http.DetectContentType(buffer[:readLen]), nil
 }
 
 // Close closes the fs
