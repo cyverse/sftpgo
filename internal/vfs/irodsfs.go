@@ -635,6 +635,10 @@ func (fs *IRODSFs) createConnection() error {
 	if err != nil {
 		return err
 	}
+	if strings.Contains(host, ":") {
+		// go-irodsclient joins host and port as "host:port", IPv6 addresses need brackets
+		host = "[" + host + "]"
+	}
 
 	zone, err := fs.config.getZone()
 	if err != nil {

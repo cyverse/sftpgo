@@ -3,6 +3,7 @@ package vfs
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -208,34 +209,45 @@ func (c *IRODSFsConfig) ValidateAndEncryptCredentials(additionalData string) err
 // getZone extracts zone from CollectionPath (the first subdirectory part in the path)
 // if it cannot extract, returns empty string with an error
 func (c *IRODSFsConfig) getZone() (string, error) {
-	if len(c.CollectionPath) < 1 {
-		return "", fmt.Errorf("cannot extract zone from path")
+	if !strings.HasPrefix(c.CollectionPath, "/") {
+		return "", fmt.Errorf("cannot extract zone from path %q, the path must be absolute", c.CollectionPath)
 	}
 
-	if c.CollectionPath[0] != '/' {
-		return "", fmt.Errorf("cannot extract zone from path")
+	zone, _, _ := strings.Cut(c.CollectionPath[1:], "/")
+	if zone == "" {
+		return "", fmt.Errorf("cannot extract zone from path %q", c.CollectionPath)
 	}
-
-	parts := strings.Split(c.CollectionPath[1:], "/")
-	if len(parts) >= 1 {
-		return parts[0], nil
-	}
-	return "", fmt.Errorf("cannot extract zone from path")
+	return zone, nil
 }
 
+// getHostPort parses the endpoint as host, host:port, IPv6 address or [IPv6 address]:port.
+// If the port is not specified, the default iRODS port is used
 func (c *IRODSFsConfig) getHostPort() (string, int, error) {
-	parts := strings.Split(c.Endpoint, ":")
-	if len(parts) == 2 {
-		port, err := strconv.Atoi(parts[1])
-		if err != nil {
-			return "", 0, err
+	host, portStr, err := net.SplitHostPort(c.Endpoint)
+	if err != nil {
+		// no port, the endpoint can be a host name or an IPv4/IPv6 address
+		host = c.Endpoint
+		if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+			host = host[1 : len(host)-1]
 		}
-
-		return parts[0], port, nil
-	} else if len(parts) == 1 {
-		// returns d
-		return parts[0], defaultIRODSPort, nil
+		if strings.ContainsAny(host, "[]") || (strings.Contains(host, ":") && net.ParseIP(host) == nil) {
+			return "", 0, fmt.Errorf("cannot parse host and port from the endpoint %q", c.Endpoint)
+		}
+		portStr = ""
+	}
+	if host == "" {
+		return "", 0, fmt.Errorf("cannot parse host from the endpoint %q", c.Endpoint)
+	}
+	if portStr == "" && err == nil {
+		return "", 0, fmt.Errorf("cannot parse port from the endpoint %q", c.Endpoint)
 	}
 
-	return "", 0, fmt.Errorf("cannot parse host and port from the endpoint '%s'", c.Endpoint)
+	port := defaultIRODSPort
+	if portStr != "" {
+		port, err = strconv.Atoi(portStr)
+		if err != nil || port < 1 || port > 65535 {
+			return "", 0, fmt.Errorf("invalid port %q in the endpoint %q", portStr, c.Endpoint)
+		}
+	}
+	return host, port, nil
 }
