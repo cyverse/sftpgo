@@ -501,13 +501,12 @@ func (fs *IRODSFs) Mkdir(name string) error {
 	}
 
 	irodsPath := fs.getIRODSPath(name)
-	st, err := fs.irodsClient.StatDir(irodsPath)
-	if !irodstypes.IsFileNotFoundError(err) {
-		return err
+	_, err := fs.irodsClient.Stat(irodsPath)
+	if err == nil {
+		return fmt.Errorf("cannot make directory %q: %w", irodsPath, os.ErrExist)
 	}
-
-	if st.IsDir() {
-		return fmt.Errorf("cannot make directory that already exists: %q", irodsPath)
+	if !fs.IsNotExist(err) {
+		return err
 	}
 
 	fsLog(fs, logger.LevelDebug, "making a dir %s", irodsPath)
