@@ -137,20 +137,16 @@ func (c *IRODSFsConfig) validate() error {
 	if c.Username == "" {
 		return util.NewI18nError(errors.New("username cannot be empty"), util.I18nErrorFsUsernameRequired)
 	}
-	if strings.ToLower(c.AuthScheme) != "" && strings.ToLower(c.AuthScheme) != "native" && strings.ToLower(c.AuthScheme) != "pam" {
+	scheme := strings.ToLower(c.AuthScheme)
+	switch scheme {
+	case "", "native", "pam", "pam_password":
+	default:
 		return errors.New("unknown authentication scheme")
 	}
 
-	requireSSL := false
-	if strings.ToLower(c.AuthScheme) == "pam" {
-		requireSSL = true
-	}
-	if c.RequireClientServerNegotiation {
-		if strings.ToLower(c.ClientServerNegotiationPolicy) == "cs_neg_require" {
-			requireSSL = true
-		} else if strings.ToLower(c.ClientServerNegotiationPolicy) == "cs_neg_dont_care" {
-			requireSSL = true
-		}
+	requireSSL := c.isSSLPossible()
+	if (scheme == "pam" || scheme == "pam_password") && !requireSSL {
+		return errors.New("PAM authentication requires client-server negotiation with CS_NEG_REQUIRE or CS_NEG_DONT_CARE policy")
 	}
 
 	if requireSSL {
@@ -175,6 +171,16 @@ func (c *IRODSFsConfig) validate() error {
 		return err
 	}
 	return nil
+}
+
+// isSSLPossible returns true if the client-server negotiation can result in an SSL connection.
+// The policy is parsed the same way go-irodsclient does when connecting
+func (c *IRODSFsConfig) isSSLPossible() bool {
+	if !c.RequireClientServerNegotiation {
+		return false
+	}
+	policy := irodstypes.GetCSNegotiationPolicyRequest(c.ClientServerNegotiationPolicy)
+	return policy != irodstypes.CSNegotiationPolicyRequestTCP
 }
 
 func (c *IRODSFsConfig) validateCredentials() error {
@@ -856,7 +862,7 @@ func (fs *IRODSFs) createConnection() error {
 		require := irodstypes.GetCSNegotiationPolicyRequest(fs.config.ClientServerNegotiationPolicy)
 		irodsAccount.SetCSNegotiation(true, require)
 
-		if require == irodstypes.CSNegotiationPolicyRequestSSL || len(fs.config.SSLCACertificatePath) > 0 {
+		if fs.config.isSSLPossible() {
 			// SSL
 			sslConf := irodstypes.IRODSSSLConfig{
 				CACertificatePath:       fs.config.SSLCACertificatePath,
