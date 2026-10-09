@@ -27,14 +27,13 @@ import (
 )
 
 const (
-	irodsReadSize  int = 128 * 1024      // 128KB
 	irodsWriteSize int = 8 * 1024 * 1024 // 8MB
 )
 
 // IRODSFs is a Fs implementation for iRODS backends
 type IRODSFs struct {
 	connectionID string
-	// if not empty this fs is mouted as virtual folder in the specified path
+	// if not empty this fs is mounted as virtual folder in the specified path
 	mountPath    string
 	localTempDir string
 	config       *IRODSFsConfig
@@ -45,7 +44,7 @@ func init() {
 	version.AddFeature("+irods")
 }
 
-// NewIRODSFs returns an IRODSFs object that allows to interact with an iRODS
+// NewIRODSFs returns an IRODSFs object that allows to interact with an iRODS server
 func NewIRODSFs(connectionID, localTempDir, mountPath string, irodsConfig IRODSFsConfig) (Fs, error) {
 	if localTempDir == "" {
 		localTempDir = getLocalTempDir()
@@ -140,7 +139,6 @@ func (fs *IRODSFs) Open(name string, offset int64) (File, PipeReader, func(), er
 	p := NewPipeReader(r)
 
 	go func() {
-		//n, err := fs.copy(w, irodsFileHandle, irodsReadSize)
 		n, err := io.Copy(w, irodsFileHandle)
 		w.CloseWithError(err) //nolint:errcheck
 		irodsFileHandle.Close()
@@ -192,8 +190,7 @@ func (fs *IRODSFs) Create(name string, flag, checks int) (File, PipeWriter, func
 
 	go func() {
 		bw := bufio.NewWriterSize(irodsFileHandle, irodsWriteSize)
-		// we don't use io.Copy since bufio.Writer implements io.WriterTo and
-		// so it calls the sftp.File WriteTo method without buffering
+		// buffer the writes so that iRODS receives large chunks
 		n, err := doCopy(bw, r, nil)
 		errFlush := bw.Flush()
 		if err == nil && errFlush != nil {
@@ -398,8 +395,8 @@ func (*IRODSFs) IsConditionalUploadResumeSupported(size int64) bool {
 }
 
 // IsAtomicUploadSupported returns true if atomic upload is supported.
-// iRODS uploads are already atomic, we don't need to upload to a temporary
-// file
+// Uploading to a temporary file and renaming it is not implemented for iRODS,
+// so uploads are not atomic
 func (*IRODSFs) IsAtomicUploadSupported() bool {
 	return false
 }
@@ -450,7 +447,7 @@ func (fs *IRODSFs) CheckRootPath(username string, uid int, gid int) bool {
 	return osFs.CheckRootPath(username, uid, gid)
 }
 
-// ScanRootDirContents returns the number of files contained in the bucket,
+// ScanRootDirContents returns the number of files contained in the collection,
 // and their size
 func (fs *IRODSFs) ScanRootDirContents() (int, int64, error) {
 	return fs.GetDirSize("/")

@@ -139,7 +139,7 @@ func (c *IRODSFsConfig) validate() error {
 			return errors.New("SSL encryption key size cannot be 0 when SSL is used")
 		}
 		if c.SSLAlgorithm == "" {
-			return errors.New("SSL encryption algorithm cannot be 0 when SSL is used")
+			return errors.New("SSL encryption algorithm cannot be empty when SSL is used")
 		}
 		if c.SSLSaltSize == 0 {
 			return errors.New("SSL encryption salt size cannot be 0 when SSL is used")
