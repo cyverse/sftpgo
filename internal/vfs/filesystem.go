@@ -443,6 +443,7 @@ func (f *Filesystem) GetACopy() Filesystem {
 				SSLAlgorithm:                   f.IRODSConfig.SSLAlgorithm,
 				SSLSaltSize:                    f.IRODSConfig.SSLSaltSize,
 				SSLHashRounds:                  f.IRODSConfig.SSLHashRounds,
+				PoolEndpoint:                   f.IRODSConfig.PoolEndpoint,
 			},
 			Password: f.IRODSConfig.Password.Clone(),
 		},

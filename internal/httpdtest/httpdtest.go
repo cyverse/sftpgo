@@ -2400,6 +2400,9 @@ func compareIRODSFsConfig(expected *vfs.Filesystem, actual *vfs.Filesystem) erro
 	if expected.IRODSConfig.SSLHashRounds != actual.IRODSConfig.SSLHashRounds {
 		return errors.New("IRODSFs SSL hash rounds mismatch")
 	}
+	if expected.IRODSConfig.PoolEndpoint != actual.IRODSConfig.PoolEndpoint {
+		return errors.New("IRODSFs pool endpoint mismatch")
+	}
 	if err := checkEncryptedSecret(expected.IRODSConfig.Password, actual.IRODSConfig.Password); err != nil {
 		return fmt.Errorf("IRODSFs password mismatch: %v", err)
 	}

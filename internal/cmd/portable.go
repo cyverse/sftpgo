@@ -113,6 +113,7 @@ var (
 	portableIRODSSSLAlgorithm          string
 	portableIRODSSSLSaltSize           int
 	protableIRODSSSLHashRounds         int
+	portableIRODSPoolEndpoint          string
 	portableIRODSPassword              string
 	portableCmd                        = &cobra.Command{
 		Use:   "portable",
@@ -314,6 +315,7 @@ Please take a look at the usage below to customize the serving parameters`,
 								SSLAlgorithm:                   portableIRODSSSLAlgorithm,
 								SSLSaltSize:                    portableIRODSSSLSaltSize,
 								SSLHashRounds:                  protableIRODSSSLHashRounds,
+								PoolEndpoint:                   portableIRODSPoolEndpoint,
 							},
 							Password: kms.NewPlainSecret(portableIRODSPassword),
 						},
@@ -497,6 +499,9 @@ interrupt signal.
 	portableCmd.Flags().IntVar(&portableIRODSSSLKeySize, "irods-ssl-key-size", 0, `iRODS SSL encryption key size for iRODS provider`)
 	portableCmd.Flags().IntVar(&portableIRODSSSLSaltSize, "irods-ssl-salt-size", 0, `iRODS SSL encryption salt size for iRODS provider`)
 	portableCmd.Flags().IntVar(&protableIRODSSSLHashRounds, "irods-ssl-hash-rounds", 0, `iRODS SSL encryption hash rounds for iRODS provider`)
+	portableCmd.Flags().StringVar(&portableIRODSPoolEndpoint, "irods-pool-endpoint", "", `irodsfs-pool service endpoint for iRODS provider,
+e.g. tcp://host:port or unix:///path/to/socket. If set,
+iRODS is accessed through the pool service`)
 	portableCmd.Flags().StringVar(&portableIRODSPassword, "irods-password", "", `iRODS password for iRODS provider`)
 
 	addConfigFlags(portableCmd)

@@ -619,6 +619,8 @@
         "irods_ssl_salt_size_help": "SSL salt size for SSL connection. Optional. Only for PAM/SSL.",
         "irods_ssl_hash_rounds": "SSL hash rounds",
         "irods_ssl_hash_rounds_help": "SSL hash rounds for SSL connection. Optional. Only for PAM/SSL.",
+        "irods_pool_endpoint": "Pool Endpoint",
+        "irods_pool_endpoint_help": "irodsfs-pool service endpoint, e.g. tcp://host:port or unix:///path/to/socket. Optional. If set, iRODS is accessed through the pool service instead of connecting to the iRODS server directly.",
         "os_read_buffer": "Búfer de descarga (MB)",
         "os_buffer_help": "0 significa sin búfer",
         "os_write_buffer": "Búfer de subida (MB)",

@@ -24,10 +24,14 @@ import (
 	irodsfs "github.com/cyverse/go-irodsclient/fs"
 	irodscommon "github.com/cyverse/go-irodsclient/irods/common"
 	irodstypes "github.com/cyverse/go-irodsclient/irods/types"
+	irodsfscommon "github.com/cyverse/irodsfs-common/irods"
+	irodspoolclient "github.com/cyverse/irodsfs-pool/client"
 )
 
 const (
-	irodsWriteSize int = 8 * 1024 * 1024 // 8MB
+	irodsReadSize   int    = 1024 * 1024     // 1MB
+	irodsWriteSize  int    = 8 * 1024 * 1024 // 8MB
+	irodsClientName string = "sftpgo"
 )
 
 // IRODSFs is a Fs implementation for iRODS backends
@@ -37,7 +41,14 @@ type IRODSFs struct {
 	mountPath    string
 	localTempDir string
 	config       *IRODSFsConfig
-	irodsClient  *irodsfs.FileSystem
+	// irodsClient connects to iRODS directly or through the irodsfs-pool service
+	irodsClient irodsfscommon.IRODSFSClient
+	// irodsFileSystem is set only for direct connections, irodsClient.Release
+	// does not release it
+	irodsFileSystem *irodsfs.FileSystem
+	// poolClient is set only for connections through the irodsfs-pool service,
+	// irodsClient.Release logs out but does not disconnect it
+	poolClient *irodspoolclient.PoolServiceClient
 }
 
 func init() {
@@ -75,6 +86,9 @@ func NewIRODSFs(connectionID, localTempDir, mountPath string, irodsConfig IRODSF
 
 // Name returns the name for the Fs implementation
 func (fs *IRODSFs) Name() string {
+	if fs.config.PoolEndpoint != "" {
+		return fmt.Sprintf("%s endpoint %q pool %q", irodsFsName, fs.config.Endpoint, fs.config.PoolEndpoint)
+	}
 	return fmt.Sprintf("%s endpoint %q", irodsFsName, fs.config.Endpoint)
 }
 
@@ -116,17 +130,9 @@ func (fs *IRODSFs) Open(name string, offset int64) (File, PipeReader, func(), er
 
 	fsLog(fs, logger.LevelDebug, "opening a file %s", irodsPath)
 
-	irodsFileHandle, err := fs.irodsClient.OpenFile(irodsPath, "", string(irodstypes.FileOpenModeReadOnly))
+	irodsFileHandle, err := fs.irodsClient.OpenFile(irodsPath, string(irodstypes.FileOpenModeReadOnly))
 	if err != nil {
 		return nil, nil, nil, err
-	}
-
-	if offset > 0 {
-		_, err = irodsFileHandle.Seek(offset, io.SeekStart)
-		if err != nil {
-			irodsFileHandle.Close()
-			return nil, nil, nil, err
-		}
 	}
 
 	// the pipe is created after opening the file, closing the writer
@@ -139,7 +145,8 @@ func (fs *IRODSFs) Open(name string, offset int64) (File, PipeReader, func(), er
 	p := NewPipeReader(r)
 
 	go func() {
-		n, err := io.Copy(w, irodsFileHandle)
+		reader := &irodsFileReader{handle: irodsFileHandle, offset: offset}
+		n, err := io.CopyBuffer(w, reader, make([]byte, irodsReadSize))
 		w.CloseWithError(err) //nolint:errcheck
 		irodsFileHandle.Close()
 		fsLog(fs, logger.LevelDebug, "download completed, path: %q size: %v, err: %+v", irodsPath, n, err)
@@ -164,16 +171,16 @@ func (fs *IRODSFs) Create(name string, flag, checks int) (File, PipeWriter, func
 
 	irodsPath := fs.getIRODSPath(name)
 
-	var irodsFileHandle *irodsfs.FileHandle
+	var irodsFileHandle irodsfscommon.IRODSFSFileHandle
 	var err error
 	if fs.irodsClient.ExistsFile(irodsPath) {
 		// open
 		fsLog(fs, logger.LevelDebug, "opening a file %s", irodsPath)
-		irodsFileHandle, err = fs.irodsClient.OpenFile(irodsPath, "", string(irodstypes.FileOpenModeWriteTruncate))
+		irodsFileHandle, err = fs.irodsClient.OpenFile(irodsPath, string(irodstypes.FileOpenModeWriteTruncate))
 	} else {
 		// create
 		fsLog(fs, logger.LevelDebug, "creating a file %s", irodsPath)
-		irodsFileHandle, err = fs.irodsClient.CreateFile(irodsPath, "", string(irodstypes.FileOpenModeWriteOnly))
+		irodsFileHandle, err = fs.irodsClient.CreateFile(irodsPath, string(irodstypes.FileOpenModeWriteOnly))
 	}
 
 	if err != nil {
@@ -189,7 +196,7 @@ func (fs *IRODSFs) Create(name string, flag, checks int) (File, PipeWriter, func
 	p := NewPipeWriter(w)
 
 	go func() {
-		bw := bufio.NewWriterSize(irodsFileHandle, irodsWriteSize)
+		bw := bufio.NewWriterSize(&irodsFileWriter{handle: irodsFileHandle}, irodsWriteSize)
 		// buffer the writes so that iRODS receives large chunks
 		n, err := doCopy(bw, r, nil)
 		errFlush := bw.Flush()
@@ -591,7 +598,7 @@ func (fs *IRODSFs) GetMimeType(name string) (string, error) {
 	}
 
 	irodsPath := fs.getIRODSPath(name)
-	irodsFileHandle, err := fs.irodsClient.OpenFile(irodsPath, "", string(irodstypes.FileOpenModeReadOnly))
+	irodsFileHandle, err := fs.irodsClient.OpenFile(irodsPath, string(irodstypes.FileOpenModeReadOnly))
 	if err != nil {
 		return "", err
 	}
@@ -599,7 +606,7 @@ func (fs *IRODSFs) GetMimeType(name string) (string, error) {
 
 	// http.DetectContentType considers at most the first 512 bytes
 	buffer := make([]byte, 512)
-	readLen, err := io.ReadFull(irodsFileHandle, buffer)
+	readLen, err := io.ReadFull(&irodsFileReader{handle: irodsFileHandle}, buffer)
 	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 		return "", err
 	}
@@ -609,11 +616,20 @@ func (fs *IRODSFs) GetMimeType(name string) (string, error) {
 
 // Close closes the fs
 func (fs *IRODSFs) Close() error {
+	var err error
 	if fs.irodsClient != nil {
-		fs.irodsClient.Release()
+		err = fs.irodsClient.Release()
 		fs.irodsClient = nil
 	}
-	return nil
+	if fs.irodsFileSystem != nil {
+		fs.irodsFileSystem.Release()
+		fs.irodsFileSystem = nil
+	}
+	if fs.poolClient != nil {
+		fs.poolClient.Disconnect()
+		fs.poolClient = nil
+	}
+	return err
 }
 
 // GetAvailableDiskSize return the available size for the specified path
@@ -686,14 +702,45 @@ func (fs *IRODSFs) createConnection() error {
 		}
 	}
 
+	if fs.config.PoolEndpoint != "" {
+		fsLog(fs, logger.LevelDebug, "connecting to iRODS %s:%d using %s auth through the pool service %q",
+			irodsAccount.Host, irodsAccount.Port, irodsAccount.AuthenticationScheme, fs.config.PoolEndpoint)
+
+		// the client ID starts with the connection ID, so the connection can be found in
+		// the pool server's logs. The pool server scopes file handles and locks by client
+		// ID and a connection can have more than one Fs (virtual folders), so the client
+		// ID must be unique for each Fs
+		clientID := fmt.Sprintf("%s_%s", fs.connectionID, util.GenerateUniqueID())
+		description := fmt.Sprintf("connection: %q, user: %q, mount path: %q", fs.connectionID, fs.config.Username, fs.mountPath)
+		poolClient := irodspoolclient.NewPoolServiceClient(fs.config.PoolEndpoint, irodsfs.FileSystemLongOperationTimeout,
+			true, clientID, nil)
+		if err := poolClient.Connect(); err != nil {
+			return fmt.Errorf("failed to connect to irodsfs-pool service %q: %w", fs.config.PoolEndpoint, err)
+		}
+		irodsClient, err := poolClient.NewSession(irodsAccount, irodsClientName, description)
+		if err != nil {
+			poolClient.Disconnect()
+			return fmt.Errorf("failed to login to iRODS through the irodsfs-pool service %q: %w", fs.config.PoolEndpoint, err)
+		}
+		fs.irodsClient = irodsClient
+		fs.poolClient = poolClient
+		return nil
+	}
+
 	fsLog(fs, logger.LevelDebug, "connecting to iRODS %s:%d using %s auth", irodsAccount.Host, irodsAccount.Port, irodsAccount.AuthenticationScheme)
 
-	irodsClient, err := irodsfs.NewFileSystemWithDefault(irodsAccount, "sftpgo")
+	irodsFileSystem, err := irodsfs.NewFileSystemWithDefault(irodsAccount, irodsClientName)
 	if err != nil {
 		return err
 	}
 
+	irodsClient, err := irodsfscommon.NewIRODSFSClientDirect(irodsFileSystem)
+	if err != nil {
+		irodsFileSystem.Release()
+		return err
+	}
 	fs.irodsClient = irodsClient
+	fs.irodsFileSystem = irodsFileSystem
 	return nil
 }
 
@@ -710,4 +757,28 @@ func (fs *IRODSFs) getIRODSPath(virtualPath string) string {
 	}
 
 	return path.Join(fs.config.CollectionPath, strings.TrimPrefix(virtualPath, "/"))
+}
+
+// irodsFileReader reads an iRODS file handle sequentially starting at offset
+type irodsFileReader struct {
+	handle irodsfscommon.IRODSFSFileHandle
+	offset int64
+}
+
+func (r *irodsFileReader) Read(p []byte) (int, error) {
+	n, err := r.handle.ReadAt(p, r.offset)
+	r.offset += int64(n)
+	return n, err
+}
+
+// irodsFileWriter writes an iRODS file handle sequentially starting at offset
+type irodsFileWriter struct {
+	handle irodsfscommon.IRODSFSFileHandle
+	offset int64
+}
+
+func (w *irodsFileWriter) Write(p []byte) (int, error) {
+	n, err := w.handle.WriteAt(p, w.offset)
+	w.offset += int64(n)
+	return n, err
 }

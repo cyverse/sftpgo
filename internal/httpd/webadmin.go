@@ -1703,6 +1703,7 @@ func getIRODSConfig(r *http.Request) (vfs.IRODSFsConfig, error) {
 		return config, fmt.Errorf("invalid irods ssl hash rounds: %w", err)
 	}
 	config.SSLHashRounds = int(hashRounds)
+	config.PoolEndpoint = strings.TrimSpace(r.Form.Get("irods_pool_endpoint"))
 	config.Password = getSecretFromFormField(r, "irods_password")
 	return config, err
 }

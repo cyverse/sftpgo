@@ -77,6 +77,9 @@ func (c *IRODSFsConfig) isEqual(other *IRODSFsConfig) bool {
 	if c.SSLHashRounds != other.SSLHashRounds {
 		return false
 	}
+	if c.PoolEndpoint != other.PoolEndpoint {
+		return false
+	}
 	c.setEmptyCredentialsIfNil()
 	other.setEmptyCredentialsIfNil()
 	return c.Password.IsEqual(other.Password)
@@ -149,6 +152,12 @@ func (c *IRODSFsConfig) validate() error {
 		}
 	}
 
+	if c.PoolEndpoint != "" {
+		if err := c.validatePoolEndpoint(); err != nil {
+			return err
+		}
+	}
+
 	if err := c.validateCredentials(); err != nil {
 		return err
 	}
@@ -169,6 +178,33 @@ func (c *IRODSFsConfig) isSSLPossible() bool {
 		// CS_NEG_REFUSE, TCP and unknown values result in a plain TCP connection
 		return false
 	}
+}
+
+// validatePoolEndpoint checks the irodsfs-pool service endpoint. Supported formats are
+// "tcp://host:port", "unix:///path/to/socket" and "host:port"
+func (c *IRODSFsConfig) validatePoolEndpoint() error {
+	address := c.PoolEndpoint
+	if scheme, rest, found := strings.Cut(c.PoolEndpoint, "://"); found {
+		switch strings.ToLower(scheme) {
+		case "unix":
+			if !strings.HasPrefix(rest, "/") || len(rest) < 2 {
+				return fmt.Errorf("invalid pool endpoint %q, the unix socket path must be absolute", c.PoolEndpoint)
+			}
+			return nil
+		case "tcp":
+			address = rest
+		default:
+			return fmt.Errorf("invalid pool endpoint %q, unsupported scheme %q", c.PoolEndpoint, scheme)
+		}
+	}
+	host, portStr, err := net.SplitHostPort(address)
+	if err != nil || host == "" {
+		return fmt.Errorf("invalid pool endpoint %q, host:port expected", c.PoolEndpoint)
+	}
+	if port, err := strconv.Atoi(portStr); err != nil || port < 1 || port > 65535 {
+		return fmt.Errorf("invalid port %q in the pool endpoint %q", portStr, c.PoolEndpoint)
+	}
+	return nil
 }
 
 func (c *IRODSFsConfig) validateCredentials() error {

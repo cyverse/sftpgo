@@ -5758,6 +5758,9 @@ components:
         ssl_hash_rounds:
           type: integer
           description: 'Number of hash rounds for SSL connection to iRODS server'
+        pool_endpoint:
+          type: string
+          description: 'Optional irodsfs-pool service endpoint, e.g. "tcp://host:port", "unix:///path/to/socket" or "host:port". If set, iRODS is accessed through the pool service instead of connecting to the iRODS server directly'
     FilesystemConfig:
       type: object
       properties:
