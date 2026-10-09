@@ -665,7 +665,7 @@ func (fs *IRODSFs) GetDirSize(dirname string) (int, int64, error) {
 	}
 
 	if entry.Type == irodsfs.DirectoryEntry {
-		err = fs.Walk(irodsPath, func(path string, info os.FileInfo, err error) error {
+		err = fs.Walk(dirname, func(_ string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
@@ -673,7 +673,7 @@ func (fs *IRODSFs) GetDirSize(dirname string) (int, int64, error) {
 				size += info.Size()
 				numFiles++
 			}
-			return err
+			return nil
 		})
 	}
 	return numFiles, size, err
@@ -708,6 +708,18 @@ func (fs *IRODSFs) Walk(root string, walkFn filepath.WalkFunc) error {
 		return fmt.Errorf("irods client is not connected yet")
 	}
 
+	info, err := fs.Stat(root)
+	if err != nil {
+		return walkFn(root, nil, err)
+	}
+	if err := walkFn(root, info, nil); err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return nil
+	}
+
+	// the stack contains fs paths, they are converted to iRODS paths only to list them
 	pathStack := []string{root}
 
 	for len(pathStack) > 0 {
@@ -715,22 +727,23 @@ func (fs *IRODSFs) Walk(root string, walkFn filepath.WalkFunc) error {
 		dirName := pathStack[len(pathStack)-1]
 		pathStack = pathStack[0 : len(pathStack)-1]
 
-		irodsPath := fs.getIRODSPath(dirName)
-		entries, err := fs.irodsClient.List(irodsPath)
+		entries, err := fs.irodsClient.List(fs.getIRODSPath(dirName))
 		if err != nil {
-			return err
+			if err := walkFn(dirName, nil, err); err != nil {
+				return err
+			}
+			continue
 		}
 
 		for _, entry := range entries {
-			fi := fs.makeFileInfoFromEntry(entry)
-			err = walkFn(entry.Path, fi, err)
-			if err != nil {
+			entryPath := path.Join(dirName, entry.Name)
+			if err := walkFn(entryPath, fs.makeFileInfoFromEntry(entry), nil); err != nil {
 				return err
 			}
 
 			if entry.Type == irodsfs.DirectoryEntry {
 				// add to stack
-				pathStack = append(pathStack, entry.Path)
+				pathStack = append(pathStack, entryPath)
 			}
 		}
 	}
