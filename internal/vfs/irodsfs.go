@@ -44,11 +44,9 @@ type IRODSFs struct {
 	// irodsClient connects to iRODS directly or through the irodsfs-pool service
 	irodsClient irodsfscommon.IRODSFSClient
 	// irodsFileSystem is set only for direct connections, irodsClient.Release
-	// does not release it
+	// does not release it. For connections through the irodsfs-pool service
+	// irodsClient.Release logs out and disconnects from the service
 	irodsFileSystem *irodsfs.FileSystem
-	// poolClient is set only for connections through the irodsfs-pool service,
-	// irodsClient.Release logs out but does not disconnect it
-	poolClient *irodspoolclient.PoolServiceClient
 }
 
 func init() {
@@ -625,10 +623,6 @@ func (fs *IRODSFs) Close() error {
 		fs.irodsFileSystem.Release()
 		fs.irodsFileSystem = nil
 	}
-	if fs.poolClient != nil {
-		fs.poolClient.Disconnect()
-		fs.poolClient = nil
-	}
 	return err
 }
 
@@ -713,17 +707,13 @@ func (fs *IRODSFs) createConnection() error {
 		clientID := fmt.Sprintf("%s_%s", fs.connectionID, util.GenerateUniqueID())
 		description := fmt.Sprintf("connection: %q, user: %q, mount path: %q", fs.connectionID, fs.config.Username, fs.mountPath)
 		poolClient := irodspoolclient.NewPoolServiceClient(fs.config.PoolEndpoint, irodsfs.FileSystemLongOperationTimeout,
-			true, clientID, nil)
-		if err := poolClient.Connect(); err != nil {
-			return fmt.Errorf("failed to connect to irodsfs-pool service %q: %w", fs.config.PoolEndpoint, err)
-		}
-		irodsClient, err := poolClient.NewSession(irodsAccount, irodsClientName, description)
+			true, clientID, irodsAccount, irodsClientName, description, nil)
+		irodsClient, err := poolClient.Connect()
 		if err != nil {
-			poolClient.Disconnect()
+			poolClient.Release() //nolint:errcheck
 			return fmt.Errorf("failed to login to iRODS through the irodsfs-pool service %q: %w", fs.config.PoolEndpoint, err)
 		}
 		fs.irodsClient = irodsClient
-		fs.poolClient = poolClient
 		return nil
 	}
 

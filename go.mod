@@ -22,9 +22,9 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/cockroachdb/cockroach-go/v2 v2.4.3
 	github.com/coreos/go-oidc/v3 v3.18.0
-	github.com/cyverse/go-irodsclient v0.21.4
-	github.com/cyverse/irodsfs-common v0.0.0-20261002202552-0aba07aeeee2
-	github.com/cyverse/irodsfs-pool v0.12.8
+	github.com/cyverse/go-irodsclient v0.21.6
+	github.com/cyverse/irodsfs-common v0.0.0-20261029153233-0651a520012e
+	github.com/cyverse/irodsfs-pool v0.12.9
 	github.com/drakkan/webdav v0.0.0-20260506070921-6982cd451202
 	github.com/eikenb/pipeat v0.0.0-20251030185646-385cd3c3e07b
 	github.com/fclairamb/ftpserverlib v0.32.0
